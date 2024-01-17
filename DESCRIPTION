@@ -1,0 +1,36 @@
+Package: GrafGen
+Title: Classification of Helicobacter Pylori Genomes
+Version: 0.0.31
+Date: 2024-01-17
+Authors@R: c(person(given="William", family="Wheeler", role=c("aut", "cre"),
+                email="wheelerb@imsweb.com"),
+            person(given="Difei", family="Wang", role="aut",
+                email="difei.wang2@nih.gov"),
+            person(given="Isaac", family="Zhao", role="aut"),
+            person(given="Yumi", family="Jin", role="aut"),
+            person(given="Charles", family="Rabkin", role="aut", 
+                email="rabkinc@exchange.nih.gov"))
+Imports: stats, utils, graphics, ggplot2, plotly, zlibbioc, scales,
+        RColorBrewer, dplyr, grDevices, GenomicRanges, shiny, cowplot,
+        ggpubr, stringr, rlang
+Depends: R (>= 4.3.0)
+Suggests: knitr, rmarkdown, RUnit, BiocManager, BiocGenerics,
+        BiocStyle, devtools
+Description: To classify Helicobacter pylori genomes according to genetic 
+    distance from nine reference populations. The nine reference 
+    populations are hpgpAfrica, hpgpAfrica-distant, hpgpAfroamerica, 
+    hpgpEuroamerica, hpgpMediterranea, hpgpEurope, hpgpEurasia,
+    hpgpAsia, and hpgpAklavik-86-like.
+    The vertex populations are Asia, Africa, and Europe.
+License: GPL-2
+biocViews: Genetics, Software, GenomeAnnotation, Classification
+NeedsCompilation: yes
+BugReports: https://github.com/wheelerb/GrafGen/issues
+VignetteBuilder: knitr
+Packaged: 2024-01-17 15:22:22 UTC; wheelerwi
+Author: William Wheeler [aut, cre],
+  Difei Wang [aut],
+  Isaac Zhao [aut],
+  Yumi Jin [aut],
+  Charles Rabkin [aut]
+Maintainer: William Wheeler <wheelerb@imsweb.com>
