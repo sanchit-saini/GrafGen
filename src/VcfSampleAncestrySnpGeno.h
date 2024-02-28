@@ -6,7 +6,8 @@
 #include "Util.h"
 #include "AncestrySnps.h"
 
-#define BUFFERLEN 0x0010
+//#define BUFFERLEN 0x0010
+#define BUFFERLEN 999999
 #define WORDLEN 10000
 
 class VcfSampleAncestrySnpGeno

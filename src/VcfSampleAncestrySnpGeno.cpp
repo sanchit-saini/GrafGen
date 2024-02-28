@@ -68,12 +68,15 @@ void VcfSampleAncestrySnpGeno::DeleteAncSnpGtValues()
 
 bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
 {
+    // Allocate memory
+    char *buffer   = new char[BUFFERLEN];
+    char *colValue = new char[WORDLEN];
+
     if (print) Rprintf("Reading data from file %s\n", vcfFile.c_str());
     gzFile file = gzopen (vcfFile.c_str(), "r");
 
     int lineNo = 0;
     int numVcfSnps = 0;
-    char colValue[WORDLEN];
 
     vector<int> ancSnpIds;
     vector<string> chromosomes;
@@ -97,7 +100,6 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
     while (!fileDone) {
         int err;
         int bytesRead;
-        char buffer[BUFFERLEN];
         bytesRead = gzread(file, buffer, BUFFERLEN);
         buffer[bytesRead] = '\0';
 
@@ -275,6 +277,8 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
     }
 
     lineNo++;
+    delete[] buffer;
+    delete[] colValue;
 
     if (print) Rprintf("Done. Checked %d lines. Found %d lines with ancestry SNPs\n",
               lineNo, putativeAncSnps);
