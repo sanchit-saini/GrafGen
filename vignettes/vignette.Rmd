@@ -43,8 +43,8 @@ The data is stored in the extdata folder.
 The `grafGen()` function returns a list of class "grafpop"
 with two objects: `table` and 
 `vertex`. The object `table` is a data frame containing hypothetical
-ancestry percents (A_percent, F_percent, E_percent) based on known 
-Asian, African, and European samples, respectively, normalized 
+ancestry percents (F_percent, E_percent and A_percent) based on known 
+African, European and Asian samples, respectively, normalized 
 genetic distance scores (GD1_x, GD2_y, GD3_z), 
 the predicted reference population (Refpop), nearest neighboring
 reference population, percent separation as defined in the user manual
@@ -53,15 +53,15 @@ and the genetic distances to each reference populations
 hpgpEuroamerica, hpgpMediterranea, hpgpEurope, hpgpEurasia,
 hpgpAsia,  and hpgpAklavik86-like).  
 The object `vertex` is a list containing the (fixed)
-x-y coordinates of the Asian, African, and European vertex population 
+x-y coordinates of the African, European and Asian vertex population 
 centroids.
 ```{r}
 ret <- grafGen(geno.file, print=0)
 ret$table[seq_len(5), ]
 ```
 
-Printing the return object from `grafGen()` will display the 
-x-y coordinates of the vertex populations and a table of frequency 
+Printing the return object from `grafGen()` will display 
+a table of frequency 
 counts for the predicted reference populations for the user input data.
 ```{r}
 print(ret)
@@ -75,36 +75,38 @@ plot(ret)
 ```
 
 # Interactive plots
-The functions `interactiveTrainPlot` and `interactiveTestPlot` create 
+The functions `interactiveReferencePlot` and `interactivePlot` create 
 interactive plots
 for the reference data and user input data respectively. 
-A call to `interactiveTrainPlot` will all show the results of all samples 
+A call to `interactiveReferencePlot` will all show the results of all samples 
 in the reference data.
 Hovering over a point in the plot will display three lines of information. 
-Line 1 contains the country and id of that sample.
+Line 1 contains the type and id of that sample.
 Line 2 contains the sample's reference population, 
 next nearest reference population, 
 and separation percent to the next nearest reference population as
 defined in the user manual.
-Line 3 contains the percent Asian, African, and European ancestry for 
+Line 3 contains the percent African, European and Asian ancestry for 
 that sample.
-The legend shows the country abbreviations for all samples, and clicking a
-country will add or remove those samples from the plot.
+The legend shows the types (which are the source countries in
+`interactiveReferencePlot`) for all samples, and clicking the name of a
+type will add or remove those samples from the plot.
 ```{r}
-if (interactive()) interactiveTrainPlot()
+if (interactive()) interactiveReferencePlot()
 ```
 
 # R shiny app
-The `GrafGen` package also includes an R shiny app to view the results.
+The `GrafGen` package also includes an R shiny app to view and filter 
+the plot using up to two variables.
 The function `createApp` returns a list containing the app and data
-objects needed with the app. The app then can be launced with the
+objects needed with the app. The app then can be launched with the
 `runApp` function.
 ```{r}
 tmp <- createApp(ret)
 if (interactive()) {
-    train_results <- tmp$train_results
-    test_results  <- tmp$test_results
-    test_metadata <- tmp$test_metadata
+    reference_results <- tmp$reference_results
+    user_results      <- tmp$user_results
+    user_metadata     <- tmp$user_metadata
     shiny::runApp(tmp$app)
 }
 ```
