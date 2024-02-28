@@ -39,7 +39,7 @@ def getFileFormat(file, gz=None):
   temp = fid.readline(1);
   temp = temp.decode('utf-8');
   fid.close();
-  if (temp == "#"):
+  if ((temp == "#") or (temp == b'#')):
     form = "vcf"
   else:
     form = "impute"
