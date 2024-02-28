@@ -2,7 +2,7 @@
 \name{grafGen}
 \alias{grafGen}
 
-\title{Ancestry for  H. pylori strains}
+\title{Reference population for  H. pylori strains}
 \usage{
     grafGen(genoFile, print=1)
 }
@@ -32,14 +32,23 @@
 
 \value{A list of class "grafpop" containing a data frame (\code{table})
     that includes the ancestry percents 
-    (\code{A_percent, F_percent, E_percent}) for
-    Asian, African, and European respectively,  
+    (\code{F_percent, E_percent, A_percent}) for
+    African, European and Asian respectively,  
     normalized genetic distance scores (\code{GD1_x, GD2_y, GD3_z}),
-    the predicted reference population (\code{Refpop}), and
+    the predicted reference population (\code{Refpop}), 
+    next nearest reference population (\code{Nearest_neighbor}),
+    separation to the next nearest reference population 
+    (\code{Separation_percent}) defined as \code{100*abs(d1 - d2)/d1},
+    where \code{d1} and \code{d2} are the genetic distances to the 
+    sample's assigned reference population and next nearest reference
+    population respectively, and
     the genetic distances to each reference population 
-    (names of the reference populations) as defined by equation 2 in
-    Jin (2019).  
-    The list also includes the list \code{vertex} which
+    (\code{hpgpAfrica}, \code{hpgpAfrica-distant},
+    \code{hpgpAfroamerica}, \code{hpgpEuroamerica}, \code{hpgpMediterranea}, 
+    \code{hpgpEurope}, \code{hpgpEurasia}, \code{hpgpAsia}, and 
+    \code{hpgpAklavik86-like}) as defined by equation 2 in
+    Jin (2019).
+    The returned object also includes the list \code{vertex} which
     gives the x-y coordinates of the vertex populations.
 }
 

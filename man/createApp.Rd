@@ -15,11 +15,12 @@
         If NULL, then the first column will be used.}
 }
 \description{
-    To return an R Shiny app for the reference data.
+    To return an R Shiny app for the user's data.
 }
 \details{
     This R function returns an R Shiny app that can be launched by
-    calling \code{\link[shiny]{runApp}}.
+    calling \code{\link[shiny]{runApp}}. The app allows the user 
+    to view and filter the plot using up to two variables.
 }
 
 \value{A list containing an R Shiny app and data
@@ -27,11 +28,13 @@
 
 \examples{
     library(GrafGen)
-    data(grafGen_results, package="GrafGen")
-    tmp <- createApp(grafGen_results)
-    train_results <- tmp$train_results
-    test_results  <- tmp$test_results
-    test_metadata <- tmp$test_metadata
+    data(grafGen_example_results, package="GrafGen")
+    data(example_metadata, package="GrafGen")
+    tmp <- createApp(grafGen_example_results, metadata=example_metadata, 
+            id="Sample")
+    grafGen_reference_dataframe <- tmp$grafGen_reference_dataframe
+    user_results                <- tmp$user_results
+    user_metadata               <- tmp$user_metadata
     if (interactive()) {
         shiny::runApp(tmp$app)  
     }

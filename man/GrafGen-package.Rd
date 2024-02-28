@@ -16,7 +16,7 @@
     \bold{(https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/Software.cgi)}\cr
     to be 
     applied on H. pylori genomes. The three vertex populations are
-    "Asia", "Africa", and "Europe".
+    "Africa", "Europe" and "Asia".
     The nine reference populations are "hpgpAfrica", "hpgpAfrica-distant",
     "hpgpAfroamerica", "hpgpEuroamerica", "hpgpMediterranea", "hpgpEurope",
     "hpgpEurasia", "hpgpAsia", and "hpgpAklavik86-like". 
@@ -35,7 +35,8 @@
     Ideally, the
     genotype file will contain all the SNPs with positions given
     in the \code{\link{HpyloriData}} data frame, where the positions
-    are based on the reference genome Tomb26695. However, the
+    are based on the reference genome 
+    26695 (NCBI GenBank Accession NC_000915.1). However, the
     software has been shown to work well with only using a much smaller
     fraction of SNPs in \code{\link{HpyloriData}}. The main function
     in this package is \code{\link{grafGen}}.
@@ -48,11 +49,11 @@
 
     Thorell K, Munoz-Ramirez ZY, Wang D, Sandoval-Motta S, 
     Boscolo Agostini R, Ghirotto S, Torres RC, HpGP Research Network, 
-    Falush D, Camargo MC and Rabkin CR (2023). 
+    Falush D, Camargo MC and Rabkin CS (2023). 
     New insights into Helicobacter pylori population structure from 
     analysis of a worldwide collection of complete genomes: the 
     H. pylori genome project.  
-    Nature Communications. DOI: 10.1038.
+    Nature Communications. DOI: 10.1038/s41467-023-43562-y.
 }
 \author{William Wheeler, Difei Wang, Isaac Zhao, Yumi Jin, Charles Rabkin}
 \keyword{package}

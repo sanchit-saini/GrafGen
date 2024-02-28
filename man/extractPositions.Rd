@@ -14,8 +14,8 @@
                 going to be used with \code{\link{grafGen}},
                 then it must have a .vcf or .vcf.gz extension.}
 \item{positions}{NULL or a vector of positions to extract.
-                If NULL, then the positions of the 
-                ancestry SNPs for H. pylori will be
+                If NULL, then the positions given in
+                \code{\link{HpyloriData}} will be
                 extracted.}
 }
 \description{
