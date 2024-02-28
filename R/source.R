@@ -43,9 +43,39 @@ gp_main <- function(genoFile, print) {
 
     if (file.exists(outfile)) file.remove(outfile)  
 
+    # Re-order columns
+    ret <- gp_setReturn(ret)
+
     class(ret) <- "grafpop"
 
     ret
+}
+
+gp_setReturn <- function(obj) {
+
+    tmp <- gp_getOrder()
+    vt  <- tmp$vertex
+    per <- tmp$percent
+    ref <- tmp$refpop 
+
+    vertex     <- obj$vertex
+    vertex     <- vertex[vt]
+    obj$vertex <- vertex
+    tab        <- obj$table
+    ord        <- c("Sample", "N_SNPs", "GD1_x", "GD2_y", "GD3_z",
+        per, ref, "Refpop", "Nearest_neighbor", "Separation_percent")
+    obj$table  <- tab[, ord, drop=FALSE]
+    obj
+}
+
+gp_getOrder <- function() {
+
+    vertex  <- c("Africa", "Europe", "Asia")
+    percent <- c("F_percent", "E_percent", "A_percent")
+    refpop  <- c("hpgpAfrica", "hpgpAfrica-distant", "hpgpAfroamerica", 
+        "hpgpEuroamerica", "hpgpMediterranea", "hpgpEurope",
+        "hpgpEurasia", "hpgpAsia", "hpgpAklavik86-like")
+    list(vertex=vertex, percent=percent, refpop=refpop)
 }
 
 gp_getRefPops <- function() {
@@ -266,4 +296,13 @@ checkAlleleFreqs <- function(x, op, vertex.pop, ref.pop) {
         x[, v] <- vec
     }
     x
+}
+
+getTrainResults <- function() {
+
+    grafGen_reference_dataframe <- NULL
+    dir <- system.file("data", package="GrafGen", mustWork=TRUE)
+    f   <- file.path(dir, "grafGen_reference_dataframe.rda")
+    load(f)
+    grafGen_reference_dataframe
 }

@@ -5,19 +5,15 @@ createApp <- function(obj, metadata=NULL, id=NULL) {
     check_grafpop(obj) 
     check_metadata(metadata, id)
 
-    test_results <- obj$table
+    test_results  <- obj$table
     test_metadata <- setup_metadata(metadata, id, test_results, 1)
-
-    train_results <- NULL
-    dir <- system.file("data", package="GrafGen", mustWork=TRUE)
-    f   <- file.path(dir, "train_results.rda")
-    load(f)
+    train_results <- getTrainResults()
 
     ui     <- app_ui()
     server <- app_server
     app    <- shinyApp(ui = ui, server = server)
-    list(app=app, train_results=train_results, 
-         test_results=test_results, test_metadata=test_metadata)
+    list(app=app, grafGen_reference_dataframe=train_results, 
+         user_results=test_results, user_metadata=test_metadata)
 }
 
 app_ui <- function() {
@@ -36,9 +32,9 @@ app_ui <- function() {
 
 app_server <- function(input, output, session) {
 
-    test_metadata <- get("test_metadata")
-    test_results  <- get("test_results")
-    train_results <- get("train_results")
+    test_metadata <- get("user_metadata")
+    test_results  <- get("user_results")
+    train_results <- get("grafGen_reference_dataframe")
 
     observeEvent(input$quit,{ stopApp() }) # stop app
 

@@ -1,13 +1,18 @@
 print.grafpop <- function(x, ...) {
 
-    v    <- x$vertex
-    nms  <- names(v)
-    xvec <- c(v[[1]]$x, v[[2]]$x, v[[3]]$x)
-    yvec <- c(v[[1]]$y, v[[2]]$y, v[[3]]$y)
-    tab  <- data.frame(Vertex=nms, X=xvec, Y=yvec, stringsAsFactors=FALSE)
-    print(tab)
+    #v    <- x$vertex
+    #nms  <- names(v)
+    #xvec <- c(v[[1]]$x, v[[2]]$x, v[[3]]$x)
+    #yvec <- c(v[[1]]$y, v[[2]]$y, v[[3]]$y)
+    #tab  <- data.frame(Vertex=nms, X=xvec, Y=yvec, stringsAsFactors=FALSE)
+    #print(tab)
     cat("\nPredicted reference population counts:")
-    print(table(x$table[, "Refpop", drop=TRUE], exclude=NULL))
+    tab <- table(x$table[, "Refpop", drop=TRUE], exclude=NULL)
+    nms <- names(tab)
+    ref <- gp_getOrder()$refpop
+    tmp <- ref %in% nms
+    ref <- ref[tmp]  
+    print(tab[ref])
     invisible(x)
 }
 
@@ -20,19 +25,16 @@ plot.grafpop <- function(x, legend.pos="right", showRefData=TRUE,
 }
 
 plotGrafOut <- function(obj, xvar="GD1_x", yvar="GD2_y", 
-                        legend.pos="right", interactive=FALSE,
-                        showRefData=TRUE) {
+                        legend.pos="right", showRefData=TRUE) {
 
-    triangle <- 1
+    interactive <- FALSE
+    triangle    <- 1
     if ((xvar != "GD1_x") || (yvar != "GD2_y")) triangle <- 0 
 
     data <- obj$table
     tri  <- pgo_getVertex(obj)
 
-    train_results <- NULL
-    dir <- system.file("data", package="GrafGen", mustWork=TRUE)
-    f   <- file.path(dir, "train_results.rda")
-    load(f)
+    train_results <- getTrainResults()
     X <- Y <- Refpop <- SampleID <- Refpop_n <- .data <- NULL
 
     # Set up the data
@@ -44,29 +46,19 @@ plotGrafOut <- function(obj, xvar="GD1_x", yvar="GD2_y",
     nb.cols  <- 9
     mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(nb.cols)
 
-    p1 <- pgo_ggplot(df, X, Y, xvar, yvar, legend.pos)  
+    p1 <- pgo_ggplot(df, X, Y, xvar, yvar, legend.pos, mycolors)  
     if (showRefData) {
         # ellipse of training data
         p1 <- p1 + stat_ellipse(data=train_results, aes(fill=Refpop_n), 
-                        geom="polygon", alpha=0.25)
+            geom="polygon", alpha=0.25) + guides(fill="none")
     }
     if (triangle) p1 <- pgo_triangle(p1, tri)
-    if (interactive) {
-        p1 <- p1 + geom_point(aes(label1=.data[["Refpop, SampleID"]], 
-            label2=.data[["Nearest, Separation"]],
-            label3=.data[["African, European, Asian Ancestry"]],
-            color=Refpop_n
-            ), size=1)
-        p1 <- pgo_interactive(p1, legend.pos)
-    } else {
-        p1 <- p1 + geom_point(aes(color=Refpop_n), size=1)
-    }
-
+    p1 <- p1 + geom_point(aes(color=Refpop_n), size=1)
     print(p1)
     NULL
 }
 
-pgo_ggplot <- function(df, X, Y, xvar, yvar, legend.pos) {
+pgo_ggplot <- function(df, X, Y, xvar, yvar, legend.pos, mycolors) {
 
     p1  <- ggplot(df, aes(X, Y)) +
         xlab(xvar) + ylab(yvar) +
@@ -86,6 +78,8 @@ pgo_ggplot <- function(df, X, Y, xvar, yvar, legend.pos) {
                                         hjust = 0.5,size=12)) +
         theme(legend.position=legend.pos) + 
         theme(legend.justification="right") + 
+        scale_fill_manual(values = mycolors)+
+        scale_color_manual(values = mycolors)+
         scale_x_continuous(xvar,breaks=pretty_breaks(n=10)) +
         scale_y_continuous(yvar,breaks=pretty_breaks(n=10)) 
  
@@ -101,6 +95,31 @@ pgo_triangle <- function(p1, tri) {
     annotate("segment", x=tri$F.x, xend=tri$A.x, y=tri$F.y, yend=tri$A.y, 
                     color="black")
     p1
+}
+
+pgo_refactor <- function(vec) {
+
+    ref  <- gp_getOrder()$refpop
+    ref  <- paste0(ref, "\n")
+    n    <- length(ref)
+    levs <- NULL
+
+    for (i in seq_len(n)) {
+        str <- ref[i]    
+        len <- nchar(str)
+        tmp <- substr(vec, 1, len) == str
+        tmp[is.na(tmp)] <- FALSE
+        if (any(tmp)) {
+            v2   <- vec[tmp]
+            levs <- c(levs, v2[1])  
+        }
+    }
+    if (length(levs)) {
+        ret <- factor(vec, levels=levs)
+    } else {
+        ret <- factor(vec)
+    }
+    ret
 }
 
 pgo_getData <- function(data, train_results, xvar, yvar, legend.pos) {
@@ -121,17 +140,21 @@ pgo_getData <- function(data, train_results, xvar, yvar, legend.pos) {
 
     # Frequency counts, add to train_results also
     vec  <- df[, "Refpop", drop=TRUE]
+    vec2 <- vec
     tvec <- train_results[, "Refpop", drop=TRUE]
-    pops <- unique(vec) 
+    pops <- unique(tvec) 
     for (pop in pops) {
-        tmp       <- vec == pop
-        m         <- sum(tmp)
-        vec[tmp]  <- paste0(vec[tmp], "\n n=", m)
+        tmp1      <- vec == pop
+        m         <- sum(tmp1)
+        if (m) vec[tmp1]  <- paste0(vec[tmp1], "\n n=", m)
         tmp       <- tvec == pop
+        n         <- sum(tmp) 
         tvec[tmp] <- paste0(tvec[tmp], "\n n=", m)
+        if (m) vec2[tmp1]  <- paste0(vec2[tmp1], "\n n=", n)
     }
-    df[, "Refpop_n"]            <- vec
-    train_results[, "Refpop_n"] <- tvec
+    df[, "Refpop_n"]            <- pgo_refactor(vec)
+    df[, "Refpop_n2"]           <- pgo_refactor(vec2)
+    train_results[, "Refpop_n"] <- pgo_refactor(tvec)
 
     # hovering text
     df[, "label1"] <- paste0(df[, "Refpop", drop=TRUE], ", ", 
@@ -224,17 +247,17 @@ grafGenPlot <- function(obj, which=1, legend.pos=NULL,
     if (1 %in% which) {
         if (!length(lpos)) legend.pos <- "right"
         plotGrafOut(obj, xvar="GD1_x", yvar="GD2_y", legend.pos=legend.pos, 
-            showRefData=showRefData, interactive=FALSE) 
+            showRefData=showRefData) 
     }
     if (2 %in% which) {
         if (!length(lpos)) legend.pos <- "right"
         plotGrafOut(obj, xvar="GD1_x", yvar="GD3_z", legend.pos=legend.pos, 
-            showRefData=showRefData, interactive=FALSE) 
+            showRefData=showRefData) 
     }
     if (3 %in% which) {
         if (!length(lpos)) legend.pos <- "right"
         plotGrafOut(obj, xvar="GD2_y", yvar="GD3_z", legend.pos=legend.pos, 
-            showRefData=showRefData, interactive=FALSE) 
+            showRefData=showRefData) 
     }
     if (4 %in% which) {
         plotRefDist(obj, ylim=ylim0, showTrainData=showRefData)
@@ -249,10 +272,7 @@ grafGenPlot <- function(obj, which=1, legend.pos=NULL,
 plotRefDist <- function(obj, ylim=NULL, showTrainData=TRUE) {
 
     legend.pos <- "top"
-    train_results <- NULL
-    dir           <- system.file("data", package="GrafGen", mustWork=TRUE)
-    f             <- file.path(dir, "train_results.rda")
-    load(f)
+    train_results <- getTrainResults()
 
     # Get the reference pops
     trn_ref <- train_results[, "Refpop", drop=TRUE]
@@ -345,10 +365,7 @@ plotRefPerc <- function(obj, ylim=NULL, showTrainData=TRUE, jitter=0) {
     if (!length(ylim)) ylim <- c(0, 103)
     jeps  <- abs(jitter)
 
-    train_results <- NULL
-    dir           <- system.file("data", package="GrafGen", mustWork=TRUE)
-    f             <- file.path(dir, "train_results.rda")
-    load(f)
+    train_results <- getTrainResults()
 
     # Get the reference pops
     trn_ref <- train_results[, "Refpop", drop=TRUE]

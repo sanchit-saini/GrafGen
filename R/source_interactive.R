@@ -1,10 +1,7 @@
 #                                                                              X
-interactiveTrainPlot <- function() {
+interactiveReferencePlot <- function() {
 
-    train_results <- NULL
-    dir <- system.file("data", package="GrafGen", mustWork=TRUE)
-    f   <- file.path(dir, "train_results.rda")
-    load(f)
+    train_results <- getTrainResults()
 
     Refpop <- Sample <- Nearest_neighbor <- Separation_percent <- NULL
     F_percent <- E_percent <- A_percent <- NULL
@@ -76,7 +73,7 @@ interactiveTrainPlot <- function() {
                 aes(label1=.data[["Country, Sample"]],
                 label2=.data[["Refpop, Neighbor, Separation"]],
                 label3=.data[["African, European, Asian Ancestry"]],
-                color=Country.code),size=1.25)
+                color=Country.code),size=0.7)
 
     output <- ggplotly(p1, tooltip=c("label1"="Country, Sample",
                                "label2"="Refpop, Neighbor, Separation",
@@ -107,57 +104,33 @@ interactiveTrainPlot <- function() {
         output$x$data[[i]]$legendgroup <- NULL # keeps ellipse legends on
         output$x$data[[i]]$visible     <- TRUE 
     }
-
-    #mylegend = ggplot(train_results_clean, aes(GD1_x,GD2_y))+
-    #geom_point(aes(fill=Refpop_n),shape=22,size=3)+
-    #theme_nothing()+
-    #theme(legend.position="top", legend.title = element_blank(),
-    #legend.text = element_text(size=12, family="serif"))+
-    #scale_fill_manual(values = mycolors_fill)+
-    #guides(fill = guide_legend(nrow = 1))
-    #mylegend <- as_ggplot(get_legend(mylegend))
-    #mylegend
-
     output
 }
 
-interactiveTestPlot <- function(obj, metadata=NULL, id=NULL, country=NULL, 
+interactivePlot <- function(obj, metadata=NULL, id=NULL, type=NULL, 
     group=NULL) {
 
     check_grafpop(obj)
     check_metadata(metadata, id)
     check_variable(group, "group", metadata) 
-    check_variable(country, "country", metadata) 
-
-    #knitr::opts_chunk$set(
-    #fig.align='center',external=TRUE, warning=FALSE, 
-    #fig.pos='H', table.placement='H',  
-    #fig.height=4, fig.width=6,
-    #echo=FALSE, message=FALSE, cache=FALSE,
-    #warn.conflicts=FALSE,  # don't print warnings 
-    #tidy=TRUE,tidy.opts=list(width.cutoff=60)) 
-    #a4width<- 8.3
-    #a4height<- 9
+    check_variable(type, "type", metadata) 
 
     Refpop <- Sample <- Nearest_neighbor <- Separation_percent <- NULL
     F_percent <- E_percent <- A_percent <- NULL
     label1 <- label2 <- label3 <- GD1_x <- GD2_y <- Refpop_n <- .data <- NULL
-    Group <- Country <- NULL
+    Group <- Type <- NULL
 
     test_results  <- obj$table
     test_results  <- update_test_results(test_results, metadata, id, 
-        group, country)
-    train_results <- NULL
-    dir <- system.file("data", package="GrafGen", mustWork=TRUE)
-    f   <- file.path(dir, "train_results.rda")
-    load(f)
+        group, type)
+    train_results <- getTrainResults()
 
     test_results_clean <- test_results %>%
-    mutate(label1 = paste0(Group,", ",Country,", ",Sample),
+    mutate(label1 = paste0(Group,", ",Type,", ",Sample),
     label2 = paste0(Refpop,", ", Nearest_neighbor, ", ", 
     round(Separation_percent,0),"%"), label3 = paste0(round(F_percent,0),
     "%, ",round(E_percent,0), "%, ",round(A_percent,0),"%")) %>%
-    rename("Group, Country, Sample"=label1,
+    rename("Group, Type, Sample"=label1,
     "Refpop, Neighbor, Separation"=label2,
     "African, European, Asian Ancestry"=label3)
 
@@ -210,12 +183,12 @@ interactiveTestPlot <- function(obj, metadata=NULL, id=NULL, country=NULL,
         geom_segment(x = 1.4701, y = 1.2897, xend = 1.7658, yend = 1.1)+
         # data points
         geom_point(data=test_results_clean, 
-        aes(label1=.data[["Group, Country, Sample"]],
+        aes(label1=.data[["Group, Type, Sample"]],
         label2=.data[["Refpop, Neighbor, Separation"]],
         label3=.data[["African, European, Asian Ancestry"]],
         color=Group),size=1.25)
 
-    output <- ggplotly(p1, tooltip=c("label1"="Group, Country, Sample",
+    output <- ggplotly(p1, tooltip=c("label1"="Group, Type, Sample",
     "label2"="Refpop, Neighbor, Separation",
     "label3"="African, European, Asian Ancestry",
     "label4"="Refpop")) %>%
@@ -245,32 +218,21 @@ interactiveTestPlot <- function(obj, metadata=NULL, id=NULL, country=NULL,
         output$x$data[[i]]$legendgroup <- NULL 
         output$x$data[[i]]$visible  <- TRUE
     }
-    #print(output)
-
-    #mylegend <- ggplot(train_results_clean, aes(GD1_x,GD2_y))+
-    #geom_point(aes(fill=Refpop_n),shape=22,size=3)+
-    #theme_nothing()+
-    #theme(legend.position="top", legend.title = element_blank(),
-    #legend.text = element_text(size=12, family="serif"))+
-    #scale_fill_manual(values = mycolors_fill)+
-    #guides(fill = guide_legend(nrow = 1))
-    #mylegend <- as_ggplot(get_legend(mylegend))
-    #print(mylegend)
     output
 }
 
-update_test_results <- function(test_results, metadata, id, group, country) {
+update_test_results <- function(test_results, metadata, id, group, type) {
 
-    # Add country, group
+    # Add type, group
     x    <- setup_metadata(metadata, id, test_results, 2)
     rows <- match(test_results[, 1], x[, 1]) 
     tmp  <- !is.na(rows)
     rows <- rows[tmp]
     n    <- length(rows)
-    v    <- "Country"
+    v    <- "Type"
     test_results[, v] <- "NA"
-    if (length(country) && n) {
-        test_results[tmp, v] <- x[rows, country, drop=TRUE]
+    if (length(type) && n) {
+        test_results[tmp, v] <- x[rows, type, drop=TRUE]
     }
     v2 <- "Group"
     test_results[, v2] <- "NA"
