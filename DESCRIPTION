@@ -1,7 +1,7 @@
 Package: GrafGen
 Title: Classification of Helicobacter Pylori Genomes
-Version: 0.0.31
-Date: 2024-01-17
+Version: 0.99.0
+Date: 2024-02-28
 Authors@R: c(person(given="William", family="Wheeler", role=c("aut", "cre"),
                 email="wheelerb@imsweb.com"),
             person(given="Difei", family="Wang", role="aut",
@@ -20,14 +20,14 @@ Description: To classify Helicobacter pylori genomes according to genetic
     distance from nine reference populations. The nine reference 
     populations are hpgpAfrica, hpgpAfrica-distant, hpgpAfroamerica, 
     hpgpEuroamerica, hpgpMediterranea, hpgpEurope, hpgpEurasia,
-    hpgpAsia, and hpgpAklavik-86-like.
-    The vertex populations are Asia, Africa, and Europe.
+    hpgpAsia, and hpgpAklavik86-like.
+    The vertex populations are Africa, Europe and Asia.
 License: GPL-2
 biocViews: Genetics, Software, GenomeAnnotation, Classification
 NeedsCompilation: yes
 BugReports: https://github.com/wheelerb/GrafGen/issues
 VignetteBuilder: knitr
-Packaged: 2024-01-17 15:22:22 UTC; wheelerwi
+Packaged: 2024-02-28 21:13:45 UTC; wheelerwi
 Author: William Wheeler [aut, cre],
   Difei Wang [aut],
   Isaac Zhao [aut],
