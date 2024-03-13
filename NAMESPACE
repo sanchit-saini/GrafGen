@@ -24,7 +24,7 @@ importFrom("rlang", ":=")
 import(shiny)
 import(zlibbioc)
 importFrom("GenomicRanges", "GPos")
-export(grafGen, extractPositions, grafGenPlot, createApp, 
+export(grafGen, grafGenPlot, createApp, 
     interactiveReferencePlot, interactivePlot)
 S3method(print, grafpop)
 S3method(plot, grafpop)
