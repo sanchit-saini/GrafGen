@@ -25,9 +25,9 @@
 
     This function is more efficient if the input genotype file only 
     contains the set (or subset) of SNPs defined in \code{\link{HpyloriData}}.
-    The SNPs can be extracted by calling \code{\link{extractPositions}} if
+    The SNPs can be extracted by utilizing the VCFtools software if
     the genotype file is a VCF file. For a binary PLINK file, the PLINK
-    software must be used to extract the SNPs. 
+    software can be used to extract the SNPs. 
 }
 
 \value{A list of class "grafpop" containing a data frame (\code{table})
@@ -58,4 +58,4 @@
     grafGen(file)
 }
 
-\seealso{ \code{\link{extractPositions}} }
+\seealso{ \code{\link{HpyloriData}} }
