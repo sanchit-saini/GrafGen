@@ -345,4 +345,43 @@ check_variable <- function(var, nm, dat) {
     NULL
 }
 
+# Function to assign a default value to an element in a list
+default.list <- function(inList, names, default, error=NULL,
+                        checkList=NULL) {
+
+    n1 <- length(names)
+    n2 <- length(default)
+    if (n1 != n2) stop("ERROR: in calling default.list")
+
+    if (is.null(error)) {
+        error <- rep(0, times=n1)
+    } else if (n1 != length(error)) {
+        stop("ERROR: in calling default.list")
+    }
+
+    if (!is.null(checkList)) {
+        if (n1 != length(checkList)) stop("ERROR: in calling default.list")
+        checkFlag <- 1
+    } else {
+        checkFlag <- 0
+    } 
+
+    if (is.null(inList)) inList <- list()
+
+    listNames <- names(inList)
+    for (i in seq_len(n1)) {
+        if (!(names[i] %in% listNames)) {
+            if (!error[i]) {
+                inList[[names[i]]] <- default[[i]]
+            } else {
+                temp <- paste("ERROR: the name ", names[i], 
+                " was not found", sep="")
+                stop(temp)
+            }
+        }
+    }
+
+    inList
+
+} # END: default.list
 
