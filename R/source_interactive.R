@@ -79,8 +79,8 @@ interactiveReferencePlot <- function() {
                                "label2"="Refpop, Neighbor, Separation",
                                "label3"="African, European, Asian Ancestry",
                                "label4"="Refpop")) %>%
-    layout(legend = list(orientation = "h",y = -0.15)) %>% 
-    config(showTips = FALSE) 
+    layout(legend = list(orientation = "h",y = -0.15))
+    #config(showTips = FALSE) 
 
     output$x$layout$legend$title$text <- "" # remove legend title
     output$x$layout$legend$font$size <- 12 # change legend font size
@@ -147,7 +147,7 @@ interactivePlot <- function(obj, metadata=NULL, id=NULL, type=NULL,
     mutate(Refpop_n=factor(Refpop_n,levels=unique(Refpop_n)))
 
     train_results_clean <- train_results %>%
-    left_join(refpop_n,by="Refpop") %>%
+    left_join(refpop_n,by="Refpop") %>% 
     mutate(Refpop_n=factor(Refpop_n,levels=levels(refpop_order$Refpop_n)),
     Refpop=factor(Refpop,levels=unique(refpop_order$Refpop)))
 
@@ -192,8 +192,8 @@ interactivePlot <- function(obj, metadata=NULL, id=NULL, type=NULL,
     "label2"="Refpop, Neighbor, Separation",
     "label3"="African, European, Asian Ancestry",
     "label4"="Refpop")) %>%
-    layout(legend = list(orientation = "h",y = -0.15)) %>% 
-    config(showTips = FALSE) 
+    layout(legend = list(orientation = "h",y = -0.15)) 
+    #config(showTips = FALSE) 
 
     output$x$layout$legend$title$text <- "" # remove legend title
     output$x$layout$legend$font$size  <- 12 # change legend font size
