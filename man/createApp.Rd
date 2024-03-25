@@ -32,9 +32,9 @@
     data(example_metadata, package="GrafGen")
     tmp <- createApp(grafGen_example_results, metadata=example_metadata, 
             id="Sample")
-    grafGen_reference_dataframe <- tmp$grafGen_reference_dataframe
-    user_results                <- tmp$user_results
-    user_metadata               <- tmp$user_metadata
+    reference_results <- tmp$reference_results
+    user_results      <- tmp$user_results
+    user_metadata     <- tmp$user_metadata
     if (interactive()) {
         shiny::runApp(tmp$app)  
     }

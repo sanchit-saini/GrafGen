@@ -54,7 +54,7 @@
 
 \examples{
     dir  <- system.file("extdata", package="GrafGen", mustWork=TRUE)
-    file <- file.path(dir, .Platform$file.sep, "data.vcf.gz")
+    file <- file.path(dir, "data.vcf.gz")
     grafGen(file)
 }
 
