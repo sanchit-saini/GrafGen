@@ -1,7 +1,7 @@
 Package: GrafGen
 Title: Classification of Helicobacter Pylori Genomes
-Version: 0.99.2
-Date: 2024-03-20
+Version: 0.99.5
+Date: 2024-03-25
 Authors@R: c(person(given="William", family="Wheeler", role=c("aut", "cre"),
                 email="wheelerb@imsweb.com"),
             person(given="Difei", family="Wang", role="aut",
@@ -27,10 +27,3 @@ biocViews: Genetics, Software, GenomeAnnotation, Classification
 NeedsCompilation: yes
 BugReports: https://github.com/wheelerb/GrafGen/issues
 VignetteBuilder: knitr
-Packaged: 2024-03-20 18:13:34 UTC; wheelerwi
-Author: William Wheeler [aut, cre],
-  Difei Wang [aut],
-  Isaac Zhao [aut],
-  Yumi Jin [aut],
-  Charles Rabkin [aut]
-Maintainer: William Wheeler <wheelerb@imsweb.com>
