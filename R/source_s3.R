@@ -171,39 +171,6 @@ pgo_getData <- function(data, train_results, xvar, yvar, legend.pos) {
     list(data=df, trn=train_results)
 }
 
-pgo_interactive <- function(p1, legend.pos) {
-
-    p1 <- ggplotly(p1, tooltip=c("label1"="Refpop, SampleID",
-                        "label2"="Nearest, Separation",
-                        "label3"="African, European, Asian Ancestry"))
-    if (legend.pos == "bottom") {
-        p1 <- p1 %>% plotly::layout(legend=list(orientation="h"))
-    }
-    p1$x$layout$legend$title$text <- ""
-
-    dlist <- p1$x$data
-    n     <- length(dlist)
-    for(i in seq_len(n)){
-        tmp <- dlist[[i]]
-        nm  <- tmp[["name", exact=TRUE]]
-
-        #fix legend
-        if (!is.null(nm)){
-            tmp$name <- gsub("\\(", "", strsplit(nm,",")[[1]][1])
-        }
-
-        # adds spaces for hover variables
-        txt <- tmp[["text", exact=TRUE]]
-        if (!is.null(txt)){
-            tmp$text <- gsub("_", " ", txt)
-        }
-        dlist[[i]] <- tmp
-    }
-    p1$x$data <- dlist
-
-    p1
-}
-
 pgo_getVertex <- function(obj) {
 
     vt       <- obj$vertex
@@ -219,18 +186,6 @@ pgo_getVertex <- function(obj) {
 
     list(F.x=F.x, F.y=F.y, A.x=A.x, A.y=A.y, E.x=E.x, E.y=E.y)
 }
-
-#pgo_getInteractive <- function() {
-#
-#    tmp <- Sys.info()
-#    os  <- tmp[["sysname", exact=TRUE]]
-#    if (length(os) && (tolower(os) %in% c("linux", "unix"))) {
-#        interactive <- FALSE
-#    } else {
-#        interactive <- TRUE
-#    }
-#    interactive
-#}
 
 grafGenPlot <- function(obj, which=1, legend.pos=NULL, 
                         ylim=NULL, showRefData=TRUE,

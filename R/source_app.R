@@ -12,7 +12,7 @@ createApp <- function(obj, metadata=NULL, id=NULL) {
     ui     <- app_ui()
     server <- app_server
     app    <- shinyApp(ui = ui, server = server)
-    list(app=app, grafGen_reference_dataframe=train_results, 
+    list(app=app, reference_results=train_results, 
          user_results=test_results, user_metadata=test_metadata)
 }
 
@@ -34,7 +34,7 @@ app_server <- function(input, output, session) {
 
     test_metadata <- get("user_metadata")
     test_results  <- get("user_results")
-    train_results <- get("grafGen_reference_dataframe")
+    train_results <- get("reference_results")
 
     observeEvent(input$quit,{ stopApp() }) # stop app
 
