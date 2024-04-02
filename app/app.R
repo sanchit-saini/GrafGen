@@ -112,7 +112,7 @@ my_app_function_example = function(test_metadata,test_results){
          refpop_n = test_results_clean %>%
             group_by(Refpop) %>%
             reframe(n=n()) %>%
-            mutate(Refpop_n = paste0(gsub("hpgp","",Refpop),"\n","n=",n)) %>%
+            mutate(Refpop_n = paste0(Refpop,"\n","n=",n)) %>%
             select(-n)
          
          refpop_order = test_results_clean %>%
