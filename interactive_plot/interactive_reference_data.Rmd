@@ -44,7 +44,7 @@ train_results_clean = train_results %>%
 refpop_n = train_results_clean %>%
    group_by(Refpop) %>%
    reframe(n=n()) %>%
-   mutate(Refpop_n = paste0(gsub("hpgp","",Refpop),"\n","n=",n)) %>%
+   mutate(Refpop_n = paste0(Refpop,"\n","n=",n)) %>%
    select(-n)
 
 refpop_order = train_results_clean %>%
@@ -132,7 +132,7 @@ output
 ```
 
 
-```{r,fig.width=10.5,fig.height=0.5}
+```{r,fig.width=13.0,fig.height=0.5}
 mylegend = ggplot(train_results_clean, aes(GD1_x,GD2_y))+
    geom_point(aes(fill=Refpop_n),shape=22,size=3, alpha=0.5)+
    theme_nothing()+
