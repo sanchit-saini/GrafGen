@@ -1,26 +1,22 @@
 
-\name{grafGen}
-\alias{grafGen}
+\name{grafGen_prophage}
+\alias{grafGen_prophage}
 
-\title{Reference population for H. pylori and other bacterial strains}
+\title{GrafGen for Prophages}
 \usage{
-    grafGen(genoFile, referenceData=NULL, print=1)
+    grafGen_prophage(genoFile, referenceData=NULL, print=1)
 }
 \arguments{
 \item{genoFile}{The complete path to the input genotype file.
-    This file can only be a PLINK binary file (.bed)
-    or a VCF file (.vcf, .vcf.gz). If it is a .bed file,
-    then the corresponding .bim and .fam files
-    must also exist in the same folder.
-    If a VCF file, then the format should be genotypes:\cr
+    A VCF file (.vcf, .vcf.gz) with genotypes:\cr
     \code{##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">}.
     }
-\item{referenceData}{(Only for non-H. pylori genomes)
+\item{referenceData}{(Only to use a different set of training loci)
     Data frame with at least 9 columns where for
     a single chromosome haploid genome,\cr
     Column 1 - SNP position \cr
     Column 2 - SNP non-variant allele\cr
-    Column 3 - SNP variant allele\cr
+    Column 3 - SNP variant alleles\cr
     Column 4 - Vertex population 1 allele frequency\cr
     Column 5 - Vertex population 2 allele frequency\cr
     Column 6 - Vertex population 3 allele frequency\cr
@@ -36,31 +32,18 @@
     columns must be as above starting on column 2.
     }
 \item{print}{0 or 1 to print information as the program runs.}
-%\item{min.af}{Positive value for the minimum allele frequency. Only used 
-%    when \code{referenceData} is not \code{NULL}. Any allele frequency
-%    in \code{referenceData} less than \code{min.af} will be set to 
-%    \code{min.af}.}
-%\item{min.snp}{Minimum number of SNPs to be used in the analysis.}
 }
 \description{
-    To determine the ancestry of H. pylori and other bacterial strains.
+    To determine the ancestry of prophage genomes.
 }
 \details{
     See the references for complete details of the algorithm.
 
-    For non-H. pylori data, the data frame \code{referenceData} must be passed in.
+    For non-H. pylori prophage data, the data frame \code{referenceData} must be passed in.
     All the allele frequencies in this file must be greater than zero and
     less than one.
     The column names defining the vertex and reference populations 
     in \code{referenceData} will appear in the output and plots.
-
-    This function is more efficient if the input genotype file only 
-    contains the set (or subset) of SNPs defined in \code{\link{HpyloriData}}
-    when analyzing H. pylori data, or defined in \code{referenceData} for
-    non-H. pylori data.
-    The SNPs can be extracted by utilizing the VCFtools software if
-    the genotype file is a VCF file. For a binary PLINK file, the PLINK
-    software can be used to extract the SNPs. 
 }
 
 \value{A list of class "grafpop" containing a data frame (\code{table})
@@ -75,14 +58,12 @@
     population respectively, and
     the genetic distances to each reference population 
     as defined by equation 2 in Jin (2019).
-    For H. pylori, the ancestry percents are the columns 
-    \code{F_percent, E_percent, A_percent} for percent
-    African, European and Asian respectively, and the 
+    For H. pylori prophages, the ancestry percents are the columns 
+    \code{F_percent, A_percent, E_percent} for percent
+    African, East Asian, and southwest European respectively, and the 
     genetic distances to each reference population are 
-    \code{hpgpAfrica}, \code{hpgpAfrica-distant},
-    \code{hpgpAfroamerica}, \code{hpgpEuroamerica}, \code{hpgpMediterranea}, 
-    \code{hpgpEurope}, \code{hpgpEurasia}, \code{hpgpAsia}, and 
-    \code{hpgpAklavik86-like}.
+    \code{Africa1}, \code{EastAsia},
+    \code{SWEurope}, and \code{NEurope}.
 
     The returned object also includes the list \code{vertex} which
     gives the x-y coordinates of the vertex populations.
@@ -90,8 +71,8 @@
 
 \examples{
     dir  <- system.file("extdata", package="GrafGen", mustWork=TRUE)
-    file <- file.path(dir, "data.vcf.gz")
-    grafGen(file)
+    file <- file.path(dir, "data_prophage.vcf.gz")
+    grafGen_prophage(file)
 }
 
-\seealso{ \code{\link{HpyloriData}} }
+\seealso{ \code{\link{grafGen}} }

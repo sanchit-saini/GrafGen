@@ -6,7 +6,7 @@
 \title{Plot and Print}
 \usage{
     \method{plot}{grafpop}(x, legend.pos="right", showRefData=TRUE,
-        ...) 
+        refObj=NULL, ...) 
     \method{print}{grafpop}(x, ...)
 }
 
@@ -21,8 +21,10 @@
     \item{showRefData}{TRUE or FALSE to display the 95 percent
             confidence ellipses for the reference
             data results.}
-    %\item{interactive}{TRUE or FALSE to display an interactive
-    %        plot.}
+    \item{refObj}{The returned object from \code{\link{grafGen}} for
+        the reference data. This should only be passed in for
+        non-H. pylori genomes and if \code{x} is not
+        the result of the reference data.}
     \item{...}{Additional arguments.}
 }
 \details{Printing an object of class "grafpop" will display

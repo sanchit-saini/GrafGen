@@ -13,6 +13,9 @@
         variable.}
     \item{id}{Name of the id column in \code{metadata}.
         If NULL, then the first column will be used.}
+    %\item{refObj}{The returned object from \code{\link{grafGen}} for
+    %    the reference data. This should only be passed in for
+    %    non-H. pylori genomes.}
 }
 \description{
     To return an R Shiny app for the user's data.
@@ -30,12 +33,12 @@
     library(GrafGen)
     data(grafGen_example_results, package="GrafGen")
     data(example_metadata, package="GrafGen")
-    tmp <- createApp(grafGen_example_results, metadata=example_metadata, 
-            id="Sample")
-    reference_results <- tmp$reference_results
-    user_results      <- tmp$user_results
-    user_metadata     <- tmp$user_metadata
     if (interactive()) {
+        tmp <- createApp(grafGen_example_results, metadata=example_metadata, 
+            id="Sample")
+        reference_results <- tmp$reference_results
+        user_results      <- tmp$user_results
+        user_metadata     <- tmp$user_metadata
         shiny::runApp(tmp$app)  
     }
 }

@@ -24,6 +24,10 @@
         rendered as different symbols.
         This variable should be categorical. If NULL, then
         \code{group} will be set to \code{type}.}
+    %\item{refObj}{The returned object from \code{\link{grafGen}} for
+    %    the reference data. This should only be passed in for
+    %    non-H. pylori genomes and if \code{obj} is not
+    %    the result of the reference data.}
 }
 
 \details{This plot will all show the results of all samples in the user's data.

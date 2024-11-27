@@ -5,7 +5,7 @@
 \title{Plot results}
 \usage{grafGenPlot(obj, which=1, legend.pos=NULL, 
         ylim=NULL, showRefData=TRUE,
-        jitter=0) 
+        jitter=0, refObj=NULL) 
 }
 
 \description{Plot results}
@@ -37,8 +37,10 @@
                 for the plot \code{which = 5}.
                 Values less than 0.5 work well.
                 The default is 0.}
-    %\item{interactive}{TRUE or FALSE to display an interactive
-    %                plot.}
+    \item{refObj}{The returned object from \code{\link{grafGen}} for
+        the reference data. This should only be passed in for
+        non-H. pylori genomes and if \code{obj} is not
+        the result of the reference data.}
 }
 \details{The option \code{legend.pos} is only available for 
     \code{which = 1-3},

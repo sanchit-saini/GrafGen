@@ -3,12 +3,18 @@
 \alias{interactiveReferencePlot}
 
 \title{Interactive plot of the reference data}
-\usage{interactiveReferencePlot() 
+\usage{interactiveReferencePlot(prophage=0) 
 }
 
 \description{Create an interactive plot of the reference data}
 
-%\arguments{}
+\arguments{
+%\item{refObj}{The returned object from \code{\link{grafGen}} for
+%        the reference data. This should only be passed in for
+%        non-H. pylori genomes.}
+\item{prophage}{0 or 1, set to 1 for prophage data.}
+}
+
 \details{This plot will all show the results of all samples in the reference data.
     Hovering over a point in the plot will display three lines of information. 
     Line 1 contains the type (i.e., the source country) and id of that sample.
