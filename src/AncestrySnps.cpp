@@ -1,36 +1,47 @@
 #include "AncestrySnps.h"
 
-AncestrySnp::AncestrySnp(int id, int g37, char a1, char a2, float* refPops, float *vtxPops)
+AncestrySnp::AncestrySnp(int id, int ch, int g37, char a1, char a2, float* refPops, 
+                        float *vtxPops, int nref)
 {
-    snpId = id;
-    posG37 = g37;
-    ref = a1;
-    alt = a2;
+    snpId      = id;
+    chr        = ch;
+    posG37     = g37;
+    ref        = a1;
+    alt        = a2;
+    numRefPops = nref;
 
+    refPopAfs = fvec(nref);
     for (int i = 0; i < numRefPops; i++) refPopAfs[i] = refPops[i];
     for (int i = 0; i < numVtxPops; i++) vtxPopAfs[i] = vtxPops[i];
 }
 
-AncestrySnps::AncestrySnps()
+AncestrySnps::AncestrySnps(int nref, int singleChr, char **map, int maplen, int nancsnps)
 {
     // see order in ReadAncestrySnpsFromFile
-
-    snps = {};
+    numRefPops = nref;
+    onechr     = singleChr;
+    snps       = {};
+    chrmap     = map;  // passed in from R code
+    chrmaplen  = maplen;
+    
+    vtxExpGenoDists = alloc_3d_double(numVtxPops, numVtxPops, nancsnps);
 }
 
 AncestrySnps::~AncestrySnps()
 {
     snps.clear();
     pos37ToAncSnpId.clear();
+    free_3d_double(vtxExpGenoDists, numVtxPops, numVtxPops);
 }
 
 int AncestrySnps::ReadAncestrySnpsFromFile(string ancSnpFile, int print)
-{
-    double popExpPfSums[numRefPops];
-    double popExpPaSums[numRefPops];
-    double popExpPeSums[numRefPops];
+{ 
+    int nref = numRefPops;
+    dvec popExpPfSums(nref);
+    dvec popExpPaSums(nref);
+    dvec popExpPeSums(nref);
 
-    for (int popId = 0; popId < numRefPops; popId++) {
+    for (int popId = 0; popId < nref; popId++) {
         popExpPeSums[popId] = 0;
         popExpPfSums[popId] = 0;
         popExpPaSums[popId] = 0;
@@ -40,62 +51,43 @@ int AncestrySnps::ReadAncestrySnpsFromFile(string ancSnpFile, int print)
     char snpLine[5000];
 
     FILE *ifp = fopen(ancSnpFile.c_str(), "r");
-    if (!ifp) error("ERROR: Couldn't open genotype file");
+    if (!ifp) Rprintf("ERROR: Couldn't open genotype file\n");
 
     int lineNo = 0;
     bool fileIsValid = true;
 
     int numSnps = 0;
-    int pos;
+    int chr, pos;
     char a1, a2;
-    float vtEur, vtAfr, vtEas;
-    float rfAfr, rfAfrAm, rfEurAm, rfAkl, rfEAsia;
-    float rfEurasia, rfSEur, rfNEur, rfZAF;
 
     while (fgets(snpLine, lineLen, ifp) != NULL && fileIsValid == true) {
         if (lineNo == 0) {
-            if (snpLine[0] != 'p' || snpLine[1] != 'o' || snpLine[2] != 's') {
+            if (snpLine[0] != '.' || snpLine[1] != '.' || snpLine[2] != '.') {
                 fileIsValid = false;
             }
             if (!fileIsValid) return(1);
         }
         else {
-            float* refPopAfs = new float[numRefPops];
+            float* refPopAfs = new float[nref];
             float* vtxPopAfs = new float[numVtxPops];
-
-            sscanf(snpLine, "%d %c %c %f %f %f %f %f %f %f %f %f %f %f %f",
-            &pos, &a1, &a2, &vtAfr, &vtEas, &vtEur, 
-            &rfAfr, &rfAfrAm, &rfEurAm, &rfAkl, &rfEAsia, 
-            &rfEurasia, &rfSEur, &rfNEur, &rfZAF);
-
-            refPopAfs[0] = rfNEur;
-            refPopAfs[1] = rfAfr;
-            refPopAfs[2] = rfEAsia;
-            refPopAfs[3] = rfAfrAm; 
-            refPopAfs[4] = rfEurAm; 
-            refPopAfs[5] = rfSEur;
-            refPopAfs[6] = rfEurasia;
-            refPopAfs[7] = rfAkl;
-            refPopAfs[8] = rfZAF;
-
-            vtxPopAfs[0] = vtEur;
-            vtxPopAfs[1] = vtAfr;
-            vtxPopAfs[2] = vtEas;
-
-            /*
-            int rc = parseSnpLine(snpLine, nrefPop, &pos, &a1, &a2, 
+            
+            int rc = parseSnpLine(snpLine, nref, &chr, &pos, &a1, &a2, 
                                   vtxPopAfs, refPopAfs);
             if (rc) {
               Rprintf("ERROR on line %d of ancestry SNP file", lineNo);
               continue;
             }
-            */
-
-            AncestrySnp ancSnp(numSnps, pos, a1, a2, refPopAfs, vtxPopAfs);
+           
+            AncestrySnp ancSnp(numSnps, chr, pos, a1, a2, refPopAfs, vtxPopAfs, nref);
 
             snps.push_back(ancSnp);
 
-            pos37ToAncSnpId[pos] = numSnps;
+            if (onechr) {
+              pos37ToAncSnpId[pos] = numSnps;
+            } else {
+              long int chrPos37 = (long)chr * 1000000000 + pos;
+              pos37ToAncSnpId[chrPos37] = numSnps;
+            }
 
             double pev = refPopAfs[0];
             double pfv = refPopAfs[1];
@@ -155,13 +147,27 @@ int AncestrySnps::ReadAncestrySnpsFromFile(string ancSnpFile, int print)
     return(0);
 }
 
-int AncestrySnps::parseSnpLine(char *snpLine, int nrefPop, int *pos, char *a1, char *a2, 
+int AncestrySnps::parseSnpLine(char *snpLine, int nrefPop, int *chr, int *pos, char *a1, char *a2, 
                                float *vtxPopAfs, float *refPopAfs) {
 
   int ret = 0;
   char *token;
+  int ch;
 
   token = strtok(snpLine, "\t");
+  if (token == NULL) return(-1);
+  if (onechr) {
+    //*chr = stoi(string(token));  // chr will be coded 0 from R code
+    *chr  = 0;
+  } else {
+    ch = GetChrNumFromChrStr(token); 
+    if (ch < 0) {
+      Rprintf("ERROR with chr = %s\n", token);
+      //error("1"); 
+    }
+    *chr = ch;
+  }
+  token = strtok(NULL, "\t");
   if (token == NULL) return(1);
   *pos = stoi(string(token));
   token = strtok(NULL, "\t");
@@ -200,8 +206,37 @@ int AncestrySnps::FindSnpIdGivenPos(int pos)
     return snpId;
 }
 
+int AncestrySnps::FindSnpIdGivenChrPos(int chr, int pos)
+{
+    int snpId = -1;
+
+    long int chrPos = long(chr) * 1000000000 + pos;
+
+    if (pos37ToAncSnpId.find(chrPos) != pos37ToAncSnpId.end()) {
+      snpId = pos37ToAncSnpId[chrPos];
+    }
+
+    return snpId;
+}
+
+
 AncestrySnp AncestrySnps::GetAncestrySnp(int snpId)
 {
     return snps[snpId];
+}
+
+int AncestrySnps::GetChrNumFromChrStr(char *chrstr)
+{
+    int ret = -1;
+    for (int i=0; i<chrmaplen; i++) {
+      if (strcmp(chrstr, chrmap[i]) == 0) {
+        ret = i;
+        break;
+      }
+    }
+    if (ret < 0) {
+      Rprintf("ERROR with chr = %s\n", chrstr);
+    }
+    return ret;
 }
 

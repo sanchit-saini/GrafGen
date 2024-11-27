@@ -1,17 +1,20 @@
 #include "SampleGenoAncestry.h"
 
-GenoSample::GenoSample(string smp)
+GenoSample::GenoSample(string smp, int nref)
 {
-    name = smp;
-    father = "";
-    mother = "";
-    sex = 0;
+    name       = smp;
+    father     = "";
+    mother     = "";
+    sex        = 0;
 
     numAncSnps = 0;
-    ancIsSet = false;
+    ancIsSet   = false;
+
+    numRefPops = nref;
+    gdist      = fvec(nref);
 }
 
-void GenoSample::SetAncestryScores(int numSnps, float d1, float d2, float d3, double *dist, float e, float f, float a, bool isAnc)
+void GenoSample::SetAncestryScores(int numSnps, float d1, float d2, float d3, dvec dist, float e, float f, float a, bool isAnc)
 {
     numAncSnps = numSnps;
     ancIsSet = isAnc;
@@ -24,9 +27,10 @@ void GenoSample::SetAncestryScores(int numSnps, float d1, float d2, float d3, do
     aPct = a;
 }
 
-SampleGenoAncestry::SampleGenoAncestry(AncestrySnps *aSnps, int minSnps)
+SampleGenoAncestry::SampleGenoAncestry(AncestrySnps *aSnps, int nref, int minSnps)
 {
-    ancSnps = aSnps;
+    numRefPops = nref;
+    ancSnps    = aSnps;
     if (minSnps) minAncSnps = minSnps;
     else         minAncSnps = 100;
     numSamples = 0;
@@ -62,7 +66,7 @@ void SampleGenoAncestry::SetGenoSamples(const vector<string> &smps)
         numSamples = smps.size();
 
         for (int i = 0; i < numSamples; i++) {
-            GenoSample genoSmp = GenoSample(smps[i]);
+            GenoSample genoSmp = GenoSample(smps[i], numRefPops);
             samples.push_back(genoSmp);
         }
     }
@@ -75,7 +79,7 @@ void SampleGenoAncestry::SetGenoSamples(const vector<FamSample> &smps)
         numSamples = smps.size();
 
         for (int i = 0; i < numSamples; i++) {
-            GenoSample genoSmp = GenoSample(smps[i].name);
+            GenoSample genoSmp = GenoSample(smps[i].name, numRefPops);
             samples.push_back(genoSmp);
         }
     }
@@ -116,33 +120,35 @@ int SampleGenoAncestry::SaveAncestryResults(string outFile, int print)
 
         fprintf(ifp, "#          x       y      z\n");
 
+        fprintf(ifp, "# E: \t%5.4f  %5.4f %5.4f\n", 
+                 vtxExpGd0->ePt.x, vtxExpGd0->ePt.y, vtxExpGd0->ePt.z);
+
         fprintf(ifp, "# F: \t%5.4f  %5.4f %5.4f\n", 
                 vtxExpGd0->fPt.x, vtxExpGd0->fPt.y, vtxExpGd0->fPt.z);
 
         fprintf(ifp, "# A: \t%5.4f  %5.4f %5.4f\n", 
                 vtxExpGd0->aPt.x, vtxExpGd0->aPt.y, vtxExpGd0->aPt.z);
 
-        fprintf(ifp, "# E: \t%5.4f  %5.4f %5.4f\n", 
-                 vtxExpGd0->ePt.x, vtxExpGd0->ePt.y, vtxExpGd0->ePt.z);
         fprintf(ifp, "#\n");
 
-        fprintf(ifp, "%s\t%s\tGD1_x\tGD2_y\tGD3_z\tE_percent\tF_percent\tA_percent\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
-                "Sample", "N_SNPs", REFPOP0, REFPOP1, REFPOP2, REFPOP3, REFPOP4, REFPOP5, REFPOP6, REFPOP7, REFPOP8);
-
+        fprintf(ifp, "%s\t%s\tGD1_x\tGD2_y\tGD3_z\tE_percent\tF_percent\tA_percent", 
+                     "Sample", "N_SNPs");
+        for (int i=0; i<numRefPops; i++) fprintf(ifp, "\tREFPOP");
+        fprintf(ifp, "\n"); 
         for (int i = 0; i < numSamples; i++) {
             GenoSample smp = samples[i];
             if (!smp.ancIsSet) continue;
 
-            fprintf(ifp, "%s\t%d\t%7.6f\t%7.6f\t%7.6f\t%6.2f\t%6.2f\t%6.2f\t%7.6f\t%7.6f\t%7.6f\t%7.6f\t%7.6f\t%7.6f\t%7.6f\t%7.6f\t%7.6f\n",
+            fprintf(ifp, "%s\t%d\t%7.6f\t%7.6f\t%7.6f\t%6.2f\t%6.2f\t%6.2f",
                     smp.name.c_str(), smp.numAncSnps,
-                    smp.gd1, smp.gd2, smp.gd3, smp.ePct, smp.fPct, smp.aPct,
-                    smp.gdist[0], smp.gdist[1], smp.gdist[2], smp.gdist[3],
-                    smp.gdist[4], smp.gdist[5], smp.gdist[6], smp.gdist[7], smp.gdist[8]);
+                    smp.gd1, smp.gd2, smp.gd3, smp.ePct, smp.fPct, smp.aPct);
+            for (int j=0; j<numRefPops; j++) fprintf(ifp, "\t%7.6f", smp.gdist[j]);
+            fprintf(ifp, "\n"); 
         }
     }
     else {
       if (print) Rprintf("ERROR: Can't open %s for writing!\n", outFile.c_str());
-      error("ERROR opening output file");
+      Rprintf("ERROR opening output file");
       return 0;
     }
 
@@ -173,8 +179,10 @@ void SampleGenoAncestry::SetAncestryPvalues(int thNo, int print)
 
         //if (debug && thNo == 0) cout << "Smp No. " << smpNo << ". smp " << samples[smpNo].name << " ";
 
-        double popPvalues[numRefPops];
-        double popMeanPvals[numRefPops];
+        //double popPvalues[numRefPops];
+        //double popMeanPvals[numRefPops];
+        dvec popPvalues(numRefPops);
+        dvec popMeanPvals(numRefPops);
 
         for (int popId = 0; popId < numRefPops; popId++) {
             popPvalues[popId] = 0;   // The raw log p-value
@@ -196,7 +204,8 @@ void SampleGenoAncestry::SetAncestryPvalues(int thNo, int print)
 
         // Assuming some reference populations might not have allele freqs for all Ancestry SNPs,
         // which is not ture for the current 5 reference populations being used
-        int refPopSnps[numRefPops]; // Counts of SNPs with freqs for each ref population
+        //int refPopSnps[numRefPops]; // Counts of SNPs with freqs for each ref population
+        ivec refPopSnps(numRefPops); // Counts of SNPs with freqs for each ref population
         for (int popId = 0; popId < numRefPops; popId++) {
             refPopSnps[popId] = 0;
         }

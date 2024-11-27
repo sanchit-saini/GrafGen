@@ -60,7 +60,7 @@ int FamFileSamples::ReadSamplesFromFile()
     char fpLine[300];
 
     FILE *ifp = fopen(filename.c_str(), "r");
-    if (!ifp) error("ERROR: Couldn't open fam file");
+    if (!ifp) Rprintf("ERROR: Couldn't open fam file");
 
     int lineNo = 0;
     bool fileIsValid = true;

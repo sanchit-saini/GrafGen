@@ -7,11 +7,15 @@
 #include "AncestrySnps.h"
 
 //#define BUFFERLEN 0x0010
-#define BUFFERLEN 999999
+#define BUFFERLEN 1234
 #define WORDLEN 10000
 
 class VcfSampleAncestrySnpGeno
 {
+public:
+    int onechr;
+    int prophage;
+
 private:
     string vcfFile;
     AncestrySnps *ancSnps;
@@ -23,7 +27,7 @@ private:
     //vector<vector<char>> vcfAncSnpGtRefs;
     vector<vector<char>> vcfAncSnpGtAlts;
 
-    //vector<int> vcfAncSnpChrs;      // chr value from The CHROM string
+    vector<int> vcfAncSnpChrs;      // chr value from The CHROM string
     vector<int> vcfAncSnpPoss;      // pos value from  POS string
     //vector<string> vcfAncSnpSnps;   // The ID string
     vector<string> vcfAncSnpRefs;   // The REF string
@@ -43,6 +47,7 @@ private:
     AncestrySnpType ancSnpType;
 
     void CompareAncestrySnpAlleles(const string, const string, const char, const char, int*, int*);
+    void CompareAncestrySnpAlleles_prophage(const string, const string, const char, const char, int*, int*);
     int RecodeGenotypeGivenString(const int, const int, const string);
     int RecodeGenotypeGivenIntegers(const int, const int, const int);
 
@@ -54,7 +59,7 @@ public:
     vector<int> vcfAncSnpIds;
     vector<char*> vcfAncSnpCodedGenos; // Use char, instead of int, to save space
 
-    VcfSampleAncestrySnpGeno(string, AncestrySnps*);
+    VcfSampleAncestrySnpGeno(string, AncestrySnps*, int, int);
     ~VcfSampleAncestrySnpGeno();
 
     int GetNumVcfSnps() { return totVcfSnps; };

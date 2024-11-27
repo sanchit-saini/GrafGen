@@ -1,14 +1,17 @@
 #include "VcfSampleAncestrySnpGeno.h"
 
-VcfSampleAncestrySnpGeno::VcfSampleAncestrySnpGeno(string file, AncestrySnps *aSnps)
+VcfSampleAncestrySnpGeno::VcfSampleAncestrySnpGeno(string file, AncestrySnps *aSnps, int singleChr, int prophFlag)
 {
+    onechr   = singleChr;
+    prophage = prophFlag;
+
     ancSnps = aSnps;
     vcfFile = file;
 
     vcfSamples = {};
     //vcfAncSnpGtRefs = {};
     vcfAncSnpGtAlts = {};
-    //vcfAncSnpChrs = {};
+    vcfAncSnpChrs = {};
     vcfAncSnpPoss = {};
     //vcfAncSnpSnps = {};
     vcfAncSnpRefs = {};
@@ -32,7 +35,7 @@ VcfSampleAncestrySnpGeno::VcfSampleAncestrySnpGeno(string file, AncestrySnps *aS
 VcfSampleAncestrySnpGeno::~VcfSampleAncestrySnpGeno()
 {
     vcfSamples.clear();
-    //vcfAncSnpChrs.clear();
+    vcfAncSnpChrs.clear();
     vcfAncSnpPoss.clear();
     //vcfAncSnpSnps.clear();
     vcfAncSnpRefs.clear();
@@ -69,8 +72,8 @@ void VcfSampleAncestrySnpGeno::DeleteAncSnpGtValues()
 bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
 {
     // Allocate memory
-    char *buffer   = new char[BUFFERLEN];
-    char *colValue = new char[WORDLEN];
+    char *colValue = new char[WORDLEN+1];
+    char *buffer   = new char[BUFFERLEN+1];
 
     if (print) Rprintf("Reading data from file %s\n", vcfFile.c_str());
     gzFile file = gzopen (vcfFile.c_str(), "r");
@@ -112,22 +115,24 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
                 errorString = gzerror(file, & err);
                 if (err) {
                     if (print) Rprintf("Error: %s.\n", errorString);
-                    error("ERROR reading binary file");
+                    Rprintf("ERROR reading binary file");
                 }
             }
         }
 
         int buffPos = 0;
         while (buffPos < bytesRead) {
+
             //bool isNewLine = false;
+            if (buffPos >= BUFFERLEN) Rprintf("ERROR BUFF 0");
             if (buffer[buffPos] == '\t' || buffer[buffPos] == '\n') {
+
                 //if (buffer[buffPos] == '\n') isNewLine = true;
-
+                if (valPos >= WORDLEN) Rprintf("ERROR 1");
                 colValue[valPos] = 0;
-
                 if      (vcfColNo == 0) {
                     chrStr = string(colValue);
-                    //chromosomes.push_back(chrStr);
+                    if (!onechr) chromosomes.push_back(chrStr);
                 }
                 else if (vcfColNo == 1) {
                     posStr = string(colValue);
@@ -152,21 +157,22 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
                     string gtStr = string(colValue);
                     snpGts.push_back(gtStr);
                 }
-
                 valPos = 0;
                 colValue[0] = 0;
                 vcfColNo++;
             }
             else {
+                if (buffPos >= BUFFERLEN) Rprintf("ERROR BUFF 1");
                 if (buffer[buffPos] != '\r' && valPos < WORDLEN-1) {
                     colValue[valPos] = buffer[buffPos];
                     valPos++;
                 }
                 else {
+                    if (valPos >= WORDLEN) Rprintf("ERROR 2");
                     colValue[valPos] = 0;
                 }
             }
-
+            if (buffPos >= BUFFERLEN) Rprintf("ERROR BUFF 2");
             if (buffer[buffPos] == '\n') {
                 vcfColNo = 0;
                 lineNo++;
@@ -188,7 +194,7 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
                         else {
                             if (print) Rprintf("ERROR: vcf file %s doesn't include samples!\n",
                                     vcfFile.c_str());
-                            error("ERROR with VCF file");
+                            Rprintf("ERROR with VCF file");
                             fileDone = true;
                             return false;
                         }
@@ -199,17 +205,22 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
                 }
                 else if (chrStr[0] && chrStr[0] != '#') {
                     if (!hasHeadRow) {
-                        error("ERROR: didn't find #CHROM row in vcf file");
+                        Rprintf("ERROR: didn't find #CHROM row in vcf file");
                         return false;
                     }
 
                     if (numCols != numSamples) {
                       if (print) Rprintf("ERROR at line # %d \n", lineNo);
-                      error("ERROR with VCF file");
+                      Rprintf("ERROR with VCF file");
                       return false;
                     }
+                    int chr, gb37SnpId;
 
-                    //int chr = GetChromosomeFromString(chrStr.c_str());
+                    //if (!onechr) chr = GetChromosomeFromString(chrStr.c_str());
+                    if (!onechr) {
+                      chr = ancSnps->GetChrNumFromChrStr((char *) chrStr.c_str());
+                      // if chr < 0, then gb37SnpId will be <= -1 below
+                    }
                     //int rsNum = GetRsNumFromString(snpStr.c_str());
                     int pos = 0;
                     try { pos = stoi(posStr); }
@@ -220,15 +231,18 @@ bool VcfSampleAncestrySnpGeno::ReadDataFromFile(int print)
                     int gb37SnpId = ancSnps->FindSnpIdGivenChrPos(chr, pos, 37);
                     int gb38SnpId = ancSnps->FindSnpIdGivenChrPos(chr, pos, 38);
                     */
-                    int gb37SnpId = ancSnps->FindSnpIdGivenPos(pos);
-
+                    if (onechr) {
+                      gb37SnpId = ancSnps->FindSnpIdGivenPos(pos);
+                    } else {
+                      gb37SnpId = ancSnps->FindSnpIdGivenChrPos(chr, pos);
+                    }
                     if (isGt && (gb37SnpId > -1)) {
                         putativeAncSnps++;
                         //if (rsSnpId > -1)   numRsIdAncSnps++;
                         if (gb37SnpId > -1) numGb37AncSnps++;
                         //if (gb38SnpId > -1) numGb38AncSnps++;
 
-                        //vcfAncSnpChrs.push_back(chr);
+                        if (!onechr) vcfAncSnpChrs.push_back(chr);
                         vcfAncSnpPoss.push_back(pos);
                         //vcfAncSnpSnps.push_back(snpStr);
                         vcfAncSnpRefs.push_back(refStr);
@@ -330,14 +344,18 @@ void VcfSampleAncestrySnpGeno::RecodeSnpGenotypes()
             int expRefIdx = -1;
             int expAltIdx = -1;
 
-            CompareAncestrySnpAlleles(vcfRef, vcfAlt, eRef, eAlt, &expRefIdx, &expAltIdx);
+            if (prophage) {
+              CompareAncestrySnpAlleles_prophage(vcfRef, vcfAlt, eRef, eAlt, &expRefIdx, &expAltIdx);
+            } else {
+              CompareAncestrySnpAlleles(vcfRef, vcfAlt, eRef, eAlt, &expRefIdx, &expAltIdx);
+            }
 
             if (expRefIdx > -1 && expAltIdx > -1) {
                 char* smpGenos = new char[numSamples];
                 //vector<char> gtRefVal = vcfAncSnpGtRefs[saveSnpNo];
                 vector<char> gtAltVal = vcfAncSnpGtAlts[saveSnpNo];
 
-                // Genotypes for the samples consist of (0=ref) or the alternate allele id number (1, 2, or 3)
+                // Genotypes for the samples consist of (0=ref) or the alternate allele id number (1, 2, ...)
                 for (int smpNo = 0; smpNo < numSamples; smpNo++) {
                     //int refGval = gtRefVal[smpNo] - '0';
                     int altGval = gtAltVal[smpNo] - '0';
@@ -368,7 +386,7 @@ const char eRef, const char eAlt, int* expRefIdx, int* expAltIdx)
         char fRef = FlipAllele(ref);  // Flipped ref allele
 
         if (ref == eRef || fRef == eRef) {
-            *expRefIdx = 0;
+            *expRefIdx = 0; 
         }
         else if (ref == eAlt || fRef == eAlt) {
             *expAltIdx = 0;
@@ -398,6 +416,45 @@ const char eRef, const char eAlt, int* expRefIdx, int* expAltIdx)
         } // end if (*expRefIdx ...)
     }
 }
+
+void VcfSampleAncestrySnpGeno::CompareAncestrySnpAlleles_prophage(const string refStr, const string altsStr,
+const char eRef, const char eAlt, int* expRefIdx, int* expAltIdx)
+{
+    // The REF allele must match - this is required for prophage data.
+    // For the ALT allele, an asterisk will be treated as a missing allele. 
+    // Any other allele is the variant allele.
+    // Currently, eAlt is not used
+    *expRefIdx = -1;
+    *expAltIdx = -1;
+
+    int refLen = refStr.size();
+    if (refLen == 1) {
+        char ref = refStr[0];
+
+        if (ref == eRef) {
+          *expRefIdx = 0; 
+        } else {
+          return;  // REFs must match !!!
+        }
+        
+        // Check ALT
+        vector<string> altWords = SplitString(altsStr, ",");
+        int numAlts = altWords.size();
+
+        for (int altNo = 0; altNo < numAlts; altNo++) {
+          string altWord = altWords[altNo];
+          int alleleIdx = altNo + 1;  // allele index starts from 0 = ref, then 1 = first alt, ...
+	  if (altWord.size() == 1) {
+            char alt = altWord[0];
+            if ((alt == 'A') || (alt == 'C') || (alt == 'G') || (alt == 'T')) {
+              *expAltIdx = alleleIdx;
+              return;
+            }
+          }
+        }
+    }
+}
+
 
 int VcfSampleAncestrySnpGeno::RecodeGenotypeGivenString(const int expRefIdx, const int expAltIdx, const string genoStr)
 {

@@ -7,9 +7,10 @@ BimFileAncestrySnps::BimFileAncestrySnps()
     numBimSnps = 0;
 }
 
-BimFileAncestrySnps::BimFileAncestrySnps(int totSnps)
+BimFileAncestrySnps::BimFileAncestrySnps(int totSnps, int singleChr)
 {
     totAncSnps = totSnps;
+    onechr     = singleChr;
     numDupAncSnps = 0;
     filename = "";
     numBimSnps = 0;
@@ -72,7 +73,7 @@ int BimFileAncestrySnps::ReadAncestrySnpsFromFile(string bimFile, AncestrySnps* 
     char fpLine[1048675];
 
     FILE *ifp = fopen(bimFile.c_str(), "r");
-    if (!ifp) error("ERROR: Could not open bim file");
+    if (!ifp) Rprintf("ERROR: Could not open bim file");
 
     bool fileIsValid = true;
 
@@ -97,9 +98,16 @@ int BimFileAncestrySnps::ReadAncestrySnpsFromFile(string bimFile, AncestrySnps* 
     numBimSnps = 0;
     while (fgets(fpLine, lineLen, ifp) != NULL && fileIsValid == true) {
         sscanf(fpLine, "%s %s %s %d %s %s", chrStr, rsStr, cm, &pos, refStr, altStr);
-
-        int pos37SnpId = ancSnps->FindSnpIdGivenPos(pos);
-
+        
+        int chr, pos37SnpId;
+        if (onechr) {
+          pos37SnpId = ancSnps->FindSnpIdGivenPos(pos);
+        } else {
+          //chr      = GetChromosomeFromString(chrStr);
+          chr        = ancSnps->GetChrNumFromChrStr(chrStr);
+          pos37SnpId = ancSnps->FindSnpIdGivenChrPos(chr, pos);
+          // note that if chr < 0, then pos37SnpId <= -1
+        }
 
         if (pos37SnpId > -1) {
             char ref = 0, alt = 0;

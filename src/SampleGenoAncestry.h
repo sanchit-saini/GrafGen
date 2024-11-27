@@ -14,22 +14,26 @@ public:
     string father;
     string mother;
     int sex;
+    int numRefPops;
 
     // Ancestry results calculated from genotypes
     int numAncSnps;
     bool ancIsSet;
     float gd1, gd2, gd3;
     float ePct, fPct, aPct;   // Ancestry (EUR, AFR, EAS) components of the sample
-    float gdist[numRefPops];
+    fvec gdist;
 
 public:
-    GenoSample(string);
-    void SetAncestryScores(int, float, float, float, double *, float, float, float, bool);
+    GenoSample(string, int);
+    void SetAncestryScores(int, float, float, float, dvec, float, float, float, bool);
 };
 
 
 class SampleGenoAncestry
 {
+public:
+    int numRefPops;
+
 private:
     int numSamples;
     int numAncSmps;
@@ -47,7 +51,7 @@ public:
     vector<int> *ancSnpIds;
     vector<char*> *ancSnpCodedGenos; // Use char, instead of int, to save space
 
-    SampleGenoAncestry(AncestrySnps*, int=100);
+    SampleGenoAncestry(AncestrySnps*, int, int=100);
     ~SampleGenoAncestry();
 
     void SetGenoSamples(const vector<string>&);

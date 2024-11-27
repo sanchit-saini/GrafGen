@@ -7,6 +7,7 @@
 class BimFileAncestrySnps
 {
     int totAncSnps;
+    int onechr;
 
     string filename;
     int numBimSnps;
@@ -30,7 +31,7 @@ private:
 
 public:
     BimFileAncestrySnps();
-    BimFileAncestrySnps(int);
+    BimFileAncestrySnps(int, int);
     ~BimFileAncestrySnps();
     void SetTotalAncestrySnps(int totSnps) { totAncSnps = totSnps; };
     char* RecodeBedSnpGeno(char*, bool);

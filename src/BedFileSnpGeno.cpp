@@ -115,12 +115,12 @@ bool BedFileSnpGeno::ReadGenotypesFromBedFile(int print)
     if (header[0] != 108 || header[1] != 27) {
       if (print) Rprintf("ERROR: File is not a valid PLINK bed file!\n");
       hasErr = true;
-      error("ERROR with input genotype file");
+      Rprintf("ERROR with input genotype file");
     }
     else if (mode[0] != 1) {
       if (print) Rprintf("ERROR: File is not in SNP mode!\n");
       hasErr = true;
-      error("ERROR with input genotype file");
+      Rprintf("ERROR with input genotype file");
     }
 
     if (fileLen != expFileLen) {
@@ -133,7 +133,7 @@ bool BedFileSnpGeno::ReadGenotypesFromBedFile(int print)
         Rprintf("Bed file has %ld bytes.\n", fileLen);
       }
       hasErr = true;
-      error("ERROR with input genotype file");
+      Rprintf("ERROR with input genotype file");
     }
 
     if (hasErr) return hasErr;

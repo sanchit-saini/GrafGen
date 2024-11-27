@@ -27,10 +27,8 @@
 const double pi = 3.1415926;
 
 // bi-allele, MAF=0.01, R2=0 
-static const int numAncSnps = 143705;
+//static const int numAncSnps = 143733;
 
-
-static const int numRefPops = 9;
 static const int numVtxPops = 3;
 
 #define REFPOP0 "hpgpEurope"
@@ -52,11 +50,18 @@ static const int numVtxPops = 3;
 #define IARG_PRINT 3
 #define IARG_NANCSNPS 4
 #define IARG_NREFPOP 5
+#define IARG_ONECHR 6
+#define IARG_CHRMAPLEN 7
+#define IARG_PROPHAGE 8
 
 #define BED_FILE 0
 #define VCF_FILE 1
 
 using namespace std;
+
+typedef vector<float> fvec;
+typedef vector<double> dvec;
+typedef vector<int> ivec;
 
 enum class AncestrySnpType
 {
@@ -91,7 +96,13 @@ struct Point
 };
 
 char FlipAllele(char);
+int AmbigAlleles(char, char);
 vector<string> SplitString(const string&, const string&);
+int GetChromosomeFromString(const char*);
 
+double** alloc_2d_double(int, int);
+double*** alloc_3d_double(int, int, int);
+void free_2d_double(double**, int);
+void free_3d_double(double***, int, int);
 
 #endif
