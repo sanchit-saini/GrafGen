@@ -1,50 +1,61 @@
 print.grafpop <- function(x, ...) {
 
-    #v    <- x$vertex
-    #nms  <- names(v)
-    #xvec <- c(v[[1]]$x, v[[2]]$x, v[[3]]$x)
-    #yvec <- c(v[[1]]$y, v[[2]]$y, v[[3]]$y)
-    #tab  <- data.frame(Vertex=nms, X=xvec, Y=yvec, stringsAsFactors=FALSE)
-    #print(tab)
     cat("\nPredicted reference population counts:")
     tab <- table(x$table[, "Refpop", drop=TRUE], exclude=NULL)
-    nms <- names(tab)
-    ref <- gp_getOrder()$refpop
-    tmp <- ref %in% nms
-    ref <- ref[tmp]  
-    print(tab[ref])
+    tmp <- gp_getReturnRefData(x)
+    if (!length(tmp)) {
+      nms <- names(tab)
+      ref <- gp_getOrder()$refpop
+      tmp <- ref %in% nms
+      ref <- ref[tmp]  
+      print(tab[ref])
+    } else {
+      print(tab) 
+    }
     invisible(x)
 }
 
 plot.grafpop <- function(x, legend.pos="right", showRefData=TRUE,
-                         ...){
+                         refObj=NULL, ...){
 
     plotGrafOut(x, legend.pos=legend.pos, 
-            showRefData=showRefData)
+            showRefData=showRefData, refObj=refObj)
     invisible(NULL)
 }
 
 plotGrafOut <- function(obj, xvar="GD1_x", yvar="GD2_y", 
-                        legend.pos="right", showRefData=TRUE) {
+                        legend.pos="right", showRefData=TRUE, refObj=NULL) {
 
     interactive <- FALSE
     triangle    <- 1
     if ((xvar != "GD1_x") || (yvar != "GD2_y")) triangle <- 0 
 
-    data <- obj$table
-    tri  <- pgo_getVertex(obj)
-
-    train_results <- getTrainResults()
+    hpflag   <- obj$objects$hpflag
+    refcols  <- obj$objects$ref.pops
+    vpops    <- obj$objects$vertex.pops
+    chr.col  <- obj$objects$chr.col
+    prophage <- obj$objects$prophage 
+    data     <- obj$table
+    tri      <- pgo_getVertex(obj)
+    train_results <- getTrainResults(retobj=obj, refobj=refObj, prophage=prophage)
     X <- Y <- Refpop <- SampleID <- Refpop_n <- .data <- NULL
 
     # Set up the data
-    tmp <- pgo_getData(data, train_results, xvar, yvar, legend.pos)
+    if (hpflag) {
+        tmp <- pgo_getData(data, train_results, xvar, yvar, legend.pos)
+    } else {
+        lab3vec <- paste0(vpops, "_percent")
+        lab3    <- paste0(vpops, collapse=", ")
+        lab3    <- paste0(lab3," Ancestry")
+        tmp <- pgo_getData(data, train_results, xvar, yvar, legend.pos,
+            lab3vec=lab3vec, lab3=lab3)  
+    }
+    nb.cols <- length(refcols)
     df  <- tmp$data
     train_results <- tmp$trn
 
     # Define the colors 
-    nb.cols  <- 9
-    mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(nb.cols)
+    mycolors <- colorRampPalette(brewer.pal(min(c(9, nb.cols)), "Set1"))(nb.cols)
 
     p1 <- pgo_ggplot(df, X, Y, xvar, yvar, legend.pos, mycolors)  
     if (showRefData) {
@@ -122,7 +133,9 @@ pgo_refactor <- function(vec) {
     ret
 }
 
-pgo_getData <- function(data, train_results, xvar, yvar, legend.pos) {
+pgo_getData <- function(data, train_results, xvar, yvar, legend.pos,
+    lab3vec=c("A_percent", "F_percent", "E_percent"),
+    lab3="African, European, Asian Ancestry") {
 
     tmp                  <- train_results
     train_results[, "X"] <- tmp[, xvar, drop=TRUE]
@@ -161,17 +174,36 @@ pgo_getData <- function(data, train_results, xvar, yvar, legend.pos) {
                         df[, "Sample", drop=TRUE])
     df[, "label2"] <- paste0(df[, "Nearest_neighbor", drop=TRUE], ", ", 
                         round(df[, "Separation_percent", drop=TRUE], 0))
-    df[, "label3"] <- paste0(round(df[, "A_percent", drop=TRUE], 0), "%, ",
-                        round(df[, "F_percent", drop=TRUE], 0), "%, ",
-                        round(df[, "E_percent", drop=TRUE], 0), "%")
-    df[, "Refpop, SampleID"]                  <- df[, "label1", drop=TRUE]
-    df[, "Nearest, Separation"]               <- df[, "label2", drop=TRUE]
-    df[, "African, European, Asian Ancestry"] <- df[, "label3", drop=TRUE]
+    df[, "label3"] <- paste0(round(df[, lab3vec[1], drop=TRUE], 0), "%, ",
+                        round(df[, lab3vec[2], drop=TRUE], 0), "%, ",
+                        round(df[, lab3vec[3], drop=TRUE], 0), "%")
+    df[, "Refpop, SampleID"]    <- df[, "label1", drop=TRUE]
+    df[, "Nearest, Separation"] <- df[, "label2", drop=TRUE]
+    df[, lab3]                  <- df[, "label3", drop=TRUE]
 
     list(data=df, trn=train_results)
 }
 
 pgo_getVertex <- function(obj) {
+
+  def <- !length(gp_getReturnRefData(obj))
+  if (def) {
+    ret <- pgo_getVertex_def(obj)
+  } else {
+    vt  <- obj$vertex
+    ret <- list()
+    nms <- c("E", "F", "A")
+    for (i in 1:3) {
+      nm  <- nms[i]
+      tmp <- vt[[i]]
+      ret[[paste0(nm, ".x")]] <- tmp$x
+      ret[[paste0(nm, ".y")]] <- tmp$y
+    }
+  }
+  ret
+}
+
+pgo_getVertex_def <- function(obj) {
 
     vt       <- obj$vertex
     tmp      <- vt$Africa
@@ -189,7 +221,7 @@ pgo_getVertex <- function(obj) {
 
 grafGenPlot <- function(obj, which=1, legend.pos=NULL, 
                         ylim=NULL, showRefData=TRUE,
-                        jitter=0) {
+                        jitter=0, refObj=NULL) {
 
     check_grafpop(obj)
     which <- check_numVec(which, "which", valid=seq_len(5), def=1)
@@ -202,32 +234,35 @@ grafGenPlot <- function(obj, which=1, legend.pos=NULL,
     if (1 %in% which) {
         if (!length(lpos)) legend.pos <- "right"
         plotGrafOut(obj, xvar="GD1_x", yvar="GD2_y", legend.pos=legend.pos, 
-            showRefData=showRefData) 
+            showRefData=showRefData, refObj=refObj) 
     }
     if (2 %in% which) {
         if (!length(lpos)) legend.pos <- "right"
         plotGrafOut(obj, xvar="GD1_x", yvar="GD3_z", legend.pos=legend.pos, 
-            showRefData=showRefData) 
+            showRefData=showRefData, refObj=refObj) 
     }
     if (3 %in% which) {
         if (!length(lpos)) legend.pos <- "right"
         plotGrafOut(obj, xvar="GD2_y", yvar="GD3_z", legend.pos=legend.pos, 
-            showRefData=showRefData) 
+            showRefData=showRefData, refObj=refObj) 
     }
     if (4 %in% which) {
-        plotRefDist(obj, ylim=ylim0, showTrainData=showRefData)
+        plotRefDist(obj, ylim=ylim0, showTrainData=showRefData, refObj=refObj)
     }
     if (5 %in% which) {
-        plotRefPerc(obj, ylim=ylim0, showTrainData=showRefData, jitter=jitter)
+        plotRefPerc(obj, ylim=ylim0, showTrainData=showRefData, jitter=jitter,
+            refObj=refObj)
     }
 
     invisible(NULL)
 }
 
-plotRefDist <- function(obj, ylim=NULL, showTrainData=TRUE) {
+plotRefDist <- function(obj, ylim=NULL, showTrainData=TRUE, refObj=NULL) {
 
     legend.pos <- "top"
-    train_results <- getTrainResults()
+    prophage   <- obj$objects$prophage 
+    train_results <- getTrainResults(retobj=obj, refobj=refObj, 
+        prophage=prophage)
 
     # Get the reference pops
     trn_ref <- train_results[, "Refpop", drop=TRUE]
@@ -305,28 +340,45 @@ plotRefDist_points <- function(pops, showTrainData, trn_ref, trn,
         if (any(tmp)) { 
             y   <- tst[tmp, pop, drop=TRUE]
             x   <- rep(i+x.eps, length(y))
-            points(x, y, col="red", pch=20)
+            points(x, y, col="red", pch=20, cex=0.75)
         } 
     }
     NULL
 }
 
-plotRefPerc <- function(obj, ylim=NULL, showTrainData=TRUE, jitter=0) {
+plotRefPerc <- function(obj, ylim=NULL, showTrainData=TRUE, jitter=0, refObj=NULL) {
 
-    legend.pos <- "top"
-    pvars      <- c("F_percent", "A_percent", "E_percent")
-    npvars     <- length(pvars)
+    legend.pos <- "top"  
     clrs       <- c("red", "green", "blue")
     if (!length(ylim)) ylim <- c(0, 103)
-    jeps  <- abs(jitter)
+    jeps     <- abs(jitter)
+    objects  <- obj$objects
+    prophage <- objects$prophage
+    hpflag   <- objects$hpflag
+    vpops    <- objects$vertex.pops
+    rpops    <- objects$ref.pops
+    user.ref <- objects$user.ref
 
-    train_results <- getTrainResults()
+    train_results <- getTrainResults(retobj=obj, refobj=refObj, prophage=prophage)
+    if (hpflag && !prophage) {
+        pvars <- c("F_percent", "A_percent", "E_percent")
+        leg   <- c("Africa", "Asia", "Europe")
+        NREF  <- 9
+    } else if (prophage && !user.ref) {
+        pvars <- c("F_percent", "A_percent", "E_percent")
+        leg   <- c("Africa1", "EastAsia", "SWEurope")
+        NREF  <- 4
+    } else {
+        pvars <- paste0(vpops, "_percent")
+        leg   <- vpops
+        NREF  <- length(rpops)
+    }
+    npvars <- length(pvars)
 
     # Get the reference pops
     trn_ref <- train_results[, "Refpop", drop=TRUE]
     pops    <- sort(unique(trn_ref))
     npop    <- length(pops)
- 
     tst     <- obj$table
     tst_ref <- tst[, "Refpop", drop=TRUE]
     tst     <- as.matrix(tst[, pvars, drop=FALSE])
@@ -334,11 +386,22 @@ plotRefPerc <- function(obj, ylim=NULL, showTrainData=TRUE, jitter=0) {
     if (showTrainData) trn <- as.matrix(train_results[, pvars, drop=FALSE])
 
     # Get the x-axis values to plot, max 6 lines per ref pop
-    plotx <- c(seq_len(6),8:13,15:20,22:27,29:34,36:41,43:48,50:55,57:62)
-    dashx <- c(7, 14, 21, 28, 35, 42, 49, 56)
-    labx  <- c(7/2, 21/2, 35/2, 49/2, 63/2, 77/2, 91/2, 105/2, 119/2)
-    xlim  <- c(1, 62)
-
+    plotx <- seq_len(6)
+    dashx <- NULL
+    a     <- 0
+    b     <- 7
+    labx  <- 7/2
+    for (i in 2:NREF) {
+        m     <- max(plotx)
+        add   <- (m+2):(m+7)
+        plotx <- c(plotx, add)  
+        a     <- a + 7
+        dashx <- c(dashx, a)
+        b     <- b + 14
+        labx  <- c(labx, b/2)
+    }
+    xlim <- c(1, max(plotx))
+    
     main <- "Vertex Population Ancestry Percents"
     plot(seq_len(npop), rep(0, npop), type="n", ylim=ylim, ylab="Percent",
         xlim=xlim, xlab="", xaxt="n", main=main)
@@ -350,7 +413,8 @@ plotRefPerc <- function(obj, ylim=NULL, showTrainData=TRUE, jitter=0) {
     # Add dashed lines
     plotRefPerc_addLines(dashx)
 
-    plotRefPerc_addLegend(showTrainData, clrs, legend.pos)
+    # Get legend
+    plotRefPerc_addLegend(showTrainData, clrs, legend.pos, leg=leg)
 
     NULL
 }
@@ -364,7 +428,7 @@ plotRefPerc_addLines <- function(dashx) {
     NULL
 }
 
-plotRefPerc_points <- function(ref, pop, dat, pv, plotxind, jeps, color) {
+plotRefPerc_points <- function(ref, pop, dat, pv, plotxind, jeps, color, pch) {
 
     tmp <- ref %in% pop
     if (any(tmp)) {
@@ -372,7 +436,7 @@ plotRefPerc_points <- function(ref, pop, dat, pv, plotxind, jeps, color) {
         ny  <- length(y)
         x   <- rep(plotxind, ny)
         if (jeps) x <- x + runif(ny, min=-jeps, max=jeps)
-        points(x, y, col=color, pch=20) 
+        points(x, y, col=color, pch=pch, cex=0.75) 
     }
     NULL
 }
@@ -380,9 +444,11 @@ plotRefPerc_points <- function(ref, pop, dat, pv, plotxind, jeps, color) {
 plotRefPerc_loop <- function(pops, pvars, showTrainData, trn_ref, trn, 
                             plotx, jeps, clrs, tst_ref, tst) {
 
-    npop   <- length(pops)
-    npvars <- length(pvars)
-    ind    <- 1
+    npop    <- length(pops)
+    npvars  <- length(pvars)
+    ind     <- 1
+    pch.trn <- 3
+    pch.tst <- 20
     for (i in seq_len(npop)) {
         pop <- pops[i]
 
@@ -391,20 +457,20 @@ plotRefPerc_loop <- function(pops, pvars, showTrainData, trn_ref, trn,
 
             # Plot train first
             if (showTrainData) plotRefPerc_points(trn_ref, pop, trn, pv, 
-                                         plotx[ind], jeps, clrs[j])
+                                         plotx[ind], jeps, clrs[j], pch.trn)
             ind <- ind + 1
 
             # Plot test
-            plotRefPerc_points(tst_ref,pop,tst,pv,plotx[ind],jeps,clrs[j])
+            plotRefPerc_points(tst_ref,pop,tst,pv,plotx[ind],jeps,clrs[j], pch.tst)
             ind <- ind + 1
         }
     }
     NULL
 }
 
-plotRefPerc_addLegend <- function(showTrainData, clrs, legend.pos) {
+plotRefPerc_addLegend <- function(showTrainData, clrs, legend.pos,
+    leg=c("Africa", "Asia", "Europe")) {
 
-    leg <- c("Africa", "Asia", "Europe")
     pch <- rep(20, 3)
     if (showTrainData) {
         leg  <- c(leg, "User Data", "Training Data")

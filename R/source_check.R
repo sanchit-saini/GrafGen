@@ -21,6 +21,42 @@ checkGenoFile <- function(x, nm="genoFile", ext=NULL) {
     NULL
 }
 
+check_refdata <- function(x, nm="referenceData") {
+
+    # Return TRUE or FALSE if data has chr col.
+    # chr col must be character 
+    ret <- FALSE
+    if (!length(x)) return(ret)
+    if (!is.data.frame(x)) stop(nm, " must be a data frame")
+    if (!nrow(x)) stop(nm, " contains no rows")
+    nc <- ncol(x)
+    if (nc < 9) stop(nm, " contains too few columns")
+    num1    <- is.numeric(x[, 1, drop=TRUE])
+    ok      <- TRUE
+    pos.col <- 1
+    a1.col  <- 2
+    a2.col  <- 3
+    frq.col <- 4
+    if (!num1) {
+        # Assume chr col   
+        pos.col <- pos.col + 1
+        a1.col  <- a1.col + 1
+        a2.col  <- a2.col + 1
+        frq.col <- frq.col + 1
+    }
+    if (!is.numeric(x[, pos.col, drop=TRUE])) ok <- FALSE
+    if (is.numeric(x[, a1.col, drop=TRUE])) ok <- FALSE
+    if (is.numeric(x[, a2.col, drop=TRUE])) ok <- FALSE
+    for (i in frq.col:nc) {
+        if (!is.numeric(x[, i, drop=TRUE])) ok <- FALSE
+    }
+    if (!ok) stop("with ", nm)
+
+    ret <- !num1
+    
+    ret
+}
+
 isBedFile <- function(x) {
 
     ret <- FALSE
@@ -190,4 +226,23 @@ check_variable <- function(var, nm, dat) {
     cx <- colnames(dat)
     if (!(var %in% cx)) stop("'", nm, "' must be a column in the data")
     NULL
+}
+
+check_valid_vcf <- function(f, sep="\t", maxrow=100) {
+
+    ret <- FALSE
+    row <- 0
+    fid <- gzfile(f, "r")
+    while (1) {
+        x <- scan(fid, what="character", nlines=1, quiet=TRUE, sep=sep)
+        if (!length(x)) break
+        row <- row + 1
+        if (x[1] == "#CHROM") {
+            ret <- TRUE
+            break
+        }
+    }
+    close(fid)
+    if (!row || !ret) stop("The column #CHROM was not found in VCF file")
+    ret
 }

@@ -1,20 +1,44 @@
 #                                                                              X
 createApp <- function(obj, metadata=NULL, id=NULL) {
 
+    refObj <- NULL
     # Check obj and metadata
     check_grafpop(obj) 
     check_metadata(metadata, id)
+    if (length(refObj)) check_grafpop(refObj) 
+
+    prophage <- obj$objects$prophage
+    hpflag   <- obj$objects$hpflag
+    vpops    <- obj$objects$vertex.pops
 
     test_results  <- obj$table
     test_metadata <- setup_metadata(metadata, id, test_results, 1)
-    train_results <- getTrainResults()
+    train_results <- getTrainResults(retobj=obj, refobj=refObj, prophage=prophage)
+    refdata       <- gp_getReturnRefData(obj)
+    v             <- app_getHPflagVar()
+    if (!hpflag) {
+        train_results      <- gp_addAFEperc(train_results, vpops)
+        train_results[, v] <- 0
+        if (length(refObj)) {
+            tmp <- refObj
+        } else {
+            tmp <- obj
+        }
+        train_results <- gp_addVertices(train_results, tmp)
+        test_results  <- gp_addAFEperc(test_results, vpops)
+    } else {
+        train_results[, v] <- 1
+    }
 
     ui     <- app_ui()
     server <- app_server
     app    <- shinyApp(ui = ui, server = server)
+
     list(app=app, reference_results=train_results, 
          user_results=test_results, user_metadata=test_metadata)
 }
+
+app_getHPflagVar <- function() { "...hpflag" }
 
 app_ui <- function() {
 
@@ -35,6 +59,18 @@ app_server <- function(input, output, session) {
     test_metadata <- get("user_metadata")
     test_results  <- get("user_results")
     train_results <- get("reference_results")
+    v             <- app_getHPflagVar()
+    hpflag        <- train_results[1, v, drop=TRUE]
+    b             <- NULL
+    if (!hpflag) {
+        x <- train_results
+        b <- list(
+            F.x=x[1, "...F.x", drop=TRUE], F.y=x[1, "...F.y", drop=TRUE],
+            E.x=x[1, "...E.x", drop=TRUE], E.y=x[1, "...E.y", drop=TRUE],
+            A.x=x[1, "...A.x", drop=TRUE], A.y=x[1, "...A.y", drop=TRUE]
+        )
+    }
+    NREF <- length(unique(train_results[, "Refpop", drop=TRUE]))
 
     observeEvent(input$quit,{ stopApp() }) # stop app
 
@@ -96,6 +132,14 @@ app_server <- function(input, output, session) {
         selected_type  <- input$selected_type 
         selected_group <- input$selected_group
 
+        if (hpflag) {
+            test_results_clean <- app_clean_HP_data(selected_type, selected_group, 
+                test_results, test_metadata) 
+        } else {
+
+        }
+      
+        if (0) {
         # label type and group if both selected
         if (selected_type!="" & selected_group!=""){
             test_results_clean <- test_results %>% 
@@ -159,13 +203,21 @@ app_server <- function(input, output, session) {
             paste0(round(F_percent,0), 
             "%, ",round(E_percent,0), "%, ",round(A_percent,0),"%")))
         }
+        }
 
         # calculate frequency
         refpop_n <- test_results_clean %>%
             group_by(Refpop) %>%
-            reframe(n=n()) %>%
+            reframe(n=n())
+        if (hpflag) {
+            refpop_n <- refpop_n %>% 
             mutate(Refpop_n = paste0(gsub("hpgp","",Refpop),"\n","n=",n)) %>%
             select(-n)
+        } else {
+            refpop_n <- refpop_n %>% 
+            mutate(Refpop_n = paste0(Refpop,"\n","n=",n)) %>%
+            select(-n)
+        }
 
         refpop_order <- test_results_clean %>%
             left_join(refpop_n,by="Refpop") %>%
@@ -232,10 +284,11 @@ app_server <- function(input, output, session) {
                 size=9)
             output <- ggplotly(output)
         } else {
+
             # --------------------------------------------
             # SCATTERPLOT + COLOR LEGEND
             # ------------------------------------------------
-            mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(9) 
+            mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(NREF) 
             p1 <- ggplot(train_results_clean, aes(GD1_x, GD2_y))+
             # theme stuff
             theme_classic()+
@@ -255,11 +308,12 @@ app_server <- function(input, output, session) {
             limits=c(min(c(1,min(test_results_filtered$GD2_y))),
             max(c(1.325,max(test_results_filtered$GD2_y)))))+
             stat_ellipse(aes(color=Refpop_n,fill=Refpop_n),
-            geom = "polygon",alpha=0.25)+  # ellipse of training data
+            geom = "polygon",alpha=0.25)  # ellipse of training data
             # make triangle
-            geom_segment(x = 1.05, y = 1.1, xend = 1.7658, yend = 1.1)+
-            geom_segment(x = 1.05, y = 1.1, xend = 1.4701, yend = 1.2897)+
-            geom_segment(x = 1.4701, y = 1.2897, xend = 1.7658, yend = 1.1)
+            p1 <- p1 + 
+            geom_segment(x = b$F.x, y = b$F.y, xend = b$A.x, yend = b$A.y)+
+            geom_segment(x = b$F.x, y = b$F.y, xend = b$E.x, yend = b$E.y)+
+            geom_segment(x = b$E.x, y = b$E.y, xend = b$A.x, yend = b$A.y)
 
             # make test datapoints a shape if that variable is selected, 
             #   otherwise default to circle
@@ -312,7 +366,8 @@ app_server <- function(input, output, session) {
 
             # fix legend names for colors. ellipses (1-9), 
             # change hover info to remove sample size
-            for(i in seq_len(9)){
+
+            for(i in seq_len(NREF)){
                 output$x$data[[i]]$text <- 
                 gsub("\\(","",str_split(output$x$data[[i]]$name,"\n")[[1]][1])
                 output$x$data[[i]]$name <- 
@@ -322,6 +377,7 @@ app_server <- function(input, output, session) {
             # count number of levels under hood for actual data points 
             #   if number of categories > 15
             n_levels <- length(output$x$data)
+
             if (selected_type!=""){
                 if (length(unique(test_results_clean$Type_Var))<=15){
                     n_levels <- length(output$x$data) - 
@@ -340,12 +396,19 @@ app_server <- function(input, output, session) {
 
             # for points, modify hover info. 
             # Different sets of point levels within each country
-            counter <- 13 # starting level for point data
+            counter <- NREF + 4 #13 # starting level for point data
             jlen <- length(unique(test_results_filtered$Refpop))
             while (counter <= n_levels){
                 for (j in seq_len(jlen)){
-                    current_refpop <- paste0("hpgp",gsub("\\(","",
-                    str_split(output$x$data[[counter]]$name,"\n")[[1]][1]))
+                    if (counter > n_levels) break  
+                    if (hpflag) {
+                        current_refpop <- paste0("hpgp",gsub("\\(","",
+                        str_split(output$x$data[[counter]]$name,"\n")[[1]][1]))
+                    } else {
+                        current_refpop <- paste0("",gsub("\\(","",
+                        str_split(output$x$data[[counter]]$name,"\n")[[1]][1]))
+                    }
+
                     current_df <- test_results_filtered %>% 
                     filter(Refpop==current_refpop)
 
@@ -372,6 +435,153 @@ app_server <- function(input, output, session) {
         }
         output
     })
+}
+
+app_clean_HP_data <- function(selected_type, selected_group, test_results,
+    test_metadata) {
+
+    Type_Var <- Group_Var <- Sample <- Refpop <- Nearest_neighbor <- NULL
+    F_percent <- E_percent <- A_percent <- Separation_percent <- NULL
+
+        if (selected_type!="" & selected_group!=""){
+            test_results_clean <- test_results %>% 
+            inner_join(test_metadata,by=c("Sample"="ID")) %>% 
+            as.data.frame()
+            test_results_clean[,"Type_Var"] <- 
+                test_results_clean[,selected_type]
+            test_results_clean[,"Group_Var"] <- 
+                test_results_clean[,selected_group]
+            test_results_clean <- test_results_clean %>%  
+            mutate(Type_Var = factor(Type_Var,
+            levels=unique(sort(test_metadata[ ,selected_type]))),
+            Group_Var = factor(Group_Var,
+            levels=unique(sort(test_metadata[ ,selected_group]))),
+            text = paste0(selected_type,", ",selected_group,", ",
+            " Sample: ",Type_Var,", ",Group_Var,", ",Sample, "<br />",
+            "Refpop, Neighbor, Separation: ", Refpop, ", ",
+            Nearest_neighbor, ",", round(Separation_percent,0),
+            "% ", "<br />",
+            "African, European, Asian Ancestry: ", round(F_percent,0), 
+            "%, ",round(E_percent,0), "%, ",round(A_percent,0),"%"))
+        } else if (selected_type!="" & selected_group==""){
+            # label type if selected
+            test_results_clean <- test_results %>% 
+            inner_join(test_metadata,by=c("Sample"="ID")) %>% 
+            as.data.frame()
+            test_results_clean[,"Type_Var"] <- 
+                test_results_clean[,selected_type]
+            test_results_clean <- test_results_clean %>%  
+            mutate(Type_Var = factor(Type_Var,
+            levels=unique(sort(test_metadata[ ,selected_type]))),
+            text = paste0(selected_type,", "," Sample: ",Type_Var,", ",
+            Sample, "<br />", "Refpop, Neighbor, Separation: ", Refpop, 
+            ", ",Nearest_neighbor, ", ",round(Separation_percent,0),"% ", 
+            "<br />", "African, European, Asian Ancestry: ", 
+            paste0(round(F_percent,0), "%, ",round(E_percent,0), "%, ",
+            round(A_percent,0),"%")))
+        } else if (selected_type=="" & selected_group!=""){
+            # label group if selected
+            test_results_clean <- test_results %>% 
+            inner_join(test_metadata,by=c("Sample"="ID")) %>% 
+            as.data.frame()
+            test_results_clean[,"Group_Var"] <- 
+                test_results_clean[,selected_group]
+            test_results_clean <- test_results_clean %>%  
+            mutate(Group_Var = factor(Group_Var,
+            levels=unique(sort(test_metadata[ ,selected_group]))),
+            text = paste0(selected_group, ", " ," Sample: ", 
+            Group_Var,", ",Sample, 
+            "<br />", "Refpop, Neighbor, Separation: ", Refpop, ", ",
+            Nearest_neighbor, ", ", round(Separation_percent,0),"% ", 
+            "<br />", "African, European, Asian Ancestry: ", 
+            paste0(round(F_percent,0), "%, ",round(E_percent,0), "%, ",
+            round(A_percent,0),"%")))
+        } else{
+            test_results_clean <- test_results %>%
+            mutate(text = paste0("Sample: ",Sample, "<br />",
+            "Refpop, Neighbor, Separation: ", Refpop, ", ",
+            Nearest_neighbor, ", ", round(Separation_percent,0),
+            "% ", "<br />","African, European, Asian Ancestry: ", 
+            paste0(round(F_percent,0), 
+            "%, ",round(E_percent,0), "%, ",round(A_percent,0),"%")))
+        }
+
+    test_results_clean
+
+}
+
+
+app_clean_nonHP_data <- function(selected_type, selected_group, test_results,
+    test_metadata) {
+
+    Type_Var <- Group_Var <- Sample <- Refpop <- Nearest_neighbor <- NULL
+    F_percent <- E_percent <- A_percent <- Separation_percent <- NULL
+
+        if (selected_type!="" & selected_group!=""){
+            test_results_clean <- test_results %>% 
+            inner_join(test_metadata,by=c("Sample"="ID")) %>% 
+            as.data.frame()
+            test_results_clean[,"Type_Var"] <- 
+                test_results_clean[,selected_type]
+            test_results_clean[,"Group_Var"] <- 
+                test_results_clean[,selected_group]
+            test_results_clean <- test_results_clean %>%  
+            mutate(Type_Var = factor(Type_Var,
+            levels=unique(sort(test_metadata[ ,selected_type]))),
+            Group_Var = factor(Group_Var,
+            levels=unique(sort(test_metadata[ ,selected_group]))),
+            text = paste0(selected_type,", ",selected_group,", ",
+            " Sample: ",Type_Var,", ",Group_Var,", ",Sample, "<br />",
+            "Refpop, Neighbor, Separation: ", Refpop, ", ",
+            Nearest_neighbor, ",", round(Separation_percent,0),
+            "% ", "<br />",
+            "Vertex pop 1, 2, 3 Ancestry: ", round(F_percent,0), 
+            "%, ",round(E_percent,0), "%, ",round(A_percent,0),"%"))
+        } else if (selected_type!="" & selected_group==""){
+            # label type if selected
+            test_results_clean <- test_results %>% 
+            inner_join(test_metadata,by=c("Sample"="ID")) %>% 
+            as.data.frame()
+            test_results_clean[,"Type_Var"] <- 
+                test_results_clean[,selected_type]
+            test_results_clean <- test_results_clean %>%  
+            mutate(Type_Var = factor(Type_Var,
+            levels=unique(sort(test_metadata[ ,selected_type]))),
+            text = paste0(selected_type,", "," Sample: ",Type_Var,", ",
+            Sample, "<br />", "Refpop, Neighbor, Separation: ", Refpop, 
+            ", ",Nearest_neighbor, ", ",round(Separation_percent,0),"% ", 
+            "<br />", "Vertex pop 1, 2, 3 Ancestry: ", 
+            paste0(round(F_percent,0), "%, ",round(E_percent,0), "%, ",
+            round(A_percent,0),"%")))
+        } else if (selected_type=="" & selected_group!=""){
+            # label group if selected
+            test_results_clean <- test_results %>% 
+            inner_join(test_metadata,by=c("Sample"="ID")) %>% 
+            as.data.frame()
+            test_results_clean[,"Group_Var"] <- 
+                test_results_clean[,selected_group]
+            test_results_clean <- test_results_clean %>%  
+            mutate(Group_Var = factor(Group_Var,
+            levels=unique(sort(test_metadata[ ,selected_group]))),
+            text = paste0(selected_group, ", " ," Sample: ", 
+            Group_Var,", ",Sample, 
+            "<br />", "Refpop, Neighbor, Separation: ", Refpop, ", ",
+            Nearest_neighbor, ", ", round(Separation_percent,0),"% ", 
+            "<br />", "Vertex pop 1, 2, 3 Ancestry: ", 
+            paste0(round(F_percent,0), "%, ",round(E_percent,0), "%, ",
+            round(A_percent,0),"%")))
+        } else{
+            test_results_clean <- test_results %>%
+            mutate(text = paste0("Sample: ",Sample, "<br />",
+            "Refpop, Neighbor, Separation: ", Refpop, ", ",
+            Nearest_neighbor, ", ", round(Separation_percent,0),
+            "% ", "<br />","Vertex pop 1, 2, 3 Ancestry: ", 
+            paste0(round(F_percent,0), 
+            "%, ",round(E_percent,0), "%, ",round(A_percent,0),"%")))
+        }
+
+    test_results_clean
+
 }
 
 setup_metadata <- function(x, id, res, which) {

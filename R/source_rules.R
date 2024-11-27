@@ -1,8 +1,9 @@
 
-rules.mindist <- function(grafout) {
+rules.mindist <- function(grafout, reference=NULL) {
 
-    if (isFile(grafout)) grafout <- readGrafOut(grafout)$table
-    ref  <- gp_getRefPops()
+    if (isFile(grafout)) grafout <- readGrafOut(grafout, reference)$table
+    #ref  <- gp_getRefPops(ancSnpCols=ancSnpCols)
+    ref  <- getRefPopNames(NULL, NULL, ref=reference)
     nref <- length(ref)
     ret  <- rep(ref[1], nrow(grafout))
     mind <- as.numeric(grafout[, ref[1], drop=TRUE])
