@@ -25,6 +25,7 @@ import(shiny)
 import(zlibbioc)
 importFrom("GenomicRanges", "GPos")
 export(grafGen, grafGenPlot, createApp, 
-    interactiveReferencePlot, interactivePlot)
+    interactiveReferencePlot, interactivePlot,
+    grafGen_prophage)
 S3method(print, grafpop)
 S3method(plot, grafpop)
