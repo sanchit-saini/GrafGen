@@ -22,7 +22,6 @@ importFrom("dplyr", "%>%", "mutate", "select", "left_join",
 importFrom("stringr", "str_split")
 importFrom("rlang", ":=")
 import(shiny)
-import(zlibbioc)
 importFrom("GenomicRanges", "GPos")
 export(grafGen, grafGenPlot, createApp, 
     interactiveReferencePlot, interactivePlot)
